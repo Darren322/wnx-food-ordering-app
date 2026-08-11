@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600" role="img" aria-label="Illustrated placeholder of a bowl of dry laksa">
+  <rect width="800" height="600" fill="#fdf3e3"/>
+  <circle cx="400" cy="300" r="230" fill="#f7e4c3"/>
+  <!-- chopsticks -->
+  <rect x="480" y="90" width="14" height="260" rx="7" fill="#8a5a2b" transform="rotate(18 487 220)"/>
+  <rect x="515" y="85" width="14" height="260" rx="7" fill="#a06a33" transform="rotate(18 522 215)"/>
+  <!-- bowl -->
+  <path d="M180 300 a220 130 0 0 0 440 0 Z" fill="#b03a2e"/>
+  <path d="M180 300 a220 130 0 0 0 440 0 L400 300 Z" fill="#9c2f24" opacity="0.35"/>
+  <ellipse cx="400" cy="300" rx="220" ry="44" fill="#d4a017"/>
+  <!-- noodles -->
+  <ellipse cx="400" cy="296" rx="200" ry="36" fill="#e8b23a"/>
+  <path d="M230 292 q30 -16 60 0 t60 0 t60 0 t60 0 t60 0" fill="none" stroke="#c98f1b" stroke-width="10" stroke-linecap="round"/>
+  <path d="M245 306 q30 -14 60 0 t60 0 t60 0 t60 0 t40 0" fill="none" stroke="#d9a024" stroke-width="8" stroke-linecap="round"/>
+  <!-- toppings -->
+  <circle cx="330" cy="278" r="16" fill="#c0392b"/>
+  <circle cx="470" cy="272" r="14" fill="#c0392b"/>
+  <path d="M380 262 q14 -18 30 -4" fill="none" stroke="#3e7c3a" stroke-width="8" stroke-linecap="round"/>
+  <path d="M430 258 q16 -16 30 -2" fill="none" stroke="#3e7c3a" stroke-width="8" stroke-linecap="round"/>
+  <!-- chilli -->
+  <path d="M300 268 q26 -8 34 10 q-26 8 -34 -10 Z" fill="#e74c3c"/>
+  <!-- steam -->
+  <path d="M330 190 q12 -22 0 -44 q-12 -22 0 -44" fill="none" stroke="#d9c9a8" stroke-width="10" stroke-linecap="round"/>
+  <path d="M400 180 q12 -22 0 -44 q-12 -22 0 -44" fill="none" stroke="#d9c9a8" stroke-width="10" stroke-linecap="round"/>
+  <path d="M470 190 q12 -22 0 -44 q-12 -22 0 -44" fill="none" stroke="#d9c9a8" stroke-width="10" stroke-linecap="round"/>
+  <!-- bowl foot -->
+  <rect x="340" y="424" width="120" height="18" rx="9" fill="#8a2a20"/>
+  <text x="400" y="540" text-anchor="middle" font-family="Georgia, serif" font-size="34" fill="#7a4a1f">Dry Laksa — photo coming soon</text>
+</svg>
