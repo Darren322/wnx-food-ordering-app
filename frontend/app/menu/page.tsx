@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { categories, products } from "@/data/products";
-import { formatCents } from "@/lib/currency";
 import { absoluteUrl } from "@/lib/seo";
 import { JsonLd } from "@/components/ui/JsonLd";
 import { MenuBrowser } from "@/components/customer/MenuBrowser";
@@ -52,13 +51,13 @@ function menuJsonLd(): Record<string, unknown> {
 
 export default function MenuPage() {
   return (
-    <div>
+    <div className="relative">
       <JsonLd data={menuJsonLd()} />
-      <h1 className="mb-2 text-3xl font-extrabold text-red-900">Menu</h1>
-      <p className="mb-6 text-neutral-700">
-        All items are preorders for self-pickup. Prices in SGD — e.g.{" "}
-        {formatCents(450)}.
-      </p>
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-20 right-0 -z-10 h-72 w-72 rounded-full bg-white/80 blur-3xl"
+      />
+      <h1 className="page-title mb-7 sm:mb-8">Menu</h1>
       <MenuBrowser categories={categories} products={products} />
     </div>
   );

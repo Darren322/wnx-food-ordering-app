@@ -11,11 +11,12 @@ export const metadata: Metadata = {
 export default function OrderConfirmationPage() {
   return (
     <div>
-      <h1 className="mb-6 text-center text-3xl font-extrabold text-red-900">
-        Order confirmation
-      </h1>
+      <header className="mx-auto mb-7 max-w-xl text-center">
+        <p className="page-kicker">Pickup arranged</p>
+        <h1 className="page-title">Order confirmation</h1>
+      </header>
       <Suspense
-        fallback={<p className="text-sm text-neutral-500">Loading…</p>}
+        fallback={<p className="text-sm text-stone-500">Loading…</p>}
       >
         <ConfirmationView />
       </Suspense>

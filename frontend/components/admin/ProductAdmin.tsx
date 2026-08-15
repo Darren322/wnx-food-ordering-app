@@ -9,6 +9,7 @@ import type {
 } from "@/types/product";
 import { centsToDollars, parseDollarsToCents } from "@/lib/currency";
 import { ProductCard } from "@/components/customer/ProductCard";
+import { ProductImage } from "@/components/ui/ProductImage";
 import {
   loadCategories,
   loadProducts,
@@ -33,9 +34,10 @@ function emptyProduct(categorySlug: string): Draft {
   };
 }
 
-const inputCls =
-  "mt-1 w-full rounded-lg border border-amber-300 px-3 py-2 text-sm";
-const labelCls = "block text-sm font-medium";
+const inputCls = "input mt-2 text-sm";
+const labelCls = "block text-sm font-semibold text-stone-800";
+const inlineInputCls =
+  "input min-h-11 min-w-0 rounded-xl px-3 py-2 text-sm";
 
 /**
  * Product & category manager. Edits persist to localStorage as an overlay
@@ -57,7 +59,11 @@ export function ProductAdmin() {
   }, []);
 
   if (!ready) {
-    return <p className="text-sm text-neutral-500">Loading products…</p>;
+    return (
+      <p role="status" className="text-sm text-stone-500">
+        Loading products…
+      </p>
+    );
   }
 
   function persist(next: Product[]) {
@@ -141,54 +147,124 @@ export function ProductAdmin() {
   return (
     <div className="space-y-8">
       {message ? (
-        <p className="rounded-lg bg-amber-50 p-3 text-sm text-neutral-700">
+        <p
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          className="rounded-2xl border border-stone-200 bg-surface px-4 py-3 text-sm text-stone-700 shadow-sm"
+        >
+          <span className="sr-only">Status: </span>
           {message}
         </p>
       ) : null}
 
-      <section>
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold">Products</h2>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setDraft(emptyProduct(cats[0]?.slug ?? ""));
-                setIsNew(true);
-                setMessage("");
-              }}
-              className="rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800"
-            >
-              Add product
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                resetProducts();
-                setItems(loadProducts());
-                setMessage("Product edits reset to the defaults from data/products.ts.");
-              }}
-              className="rounded-lg bg-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-700 hover:bg-neutral-300"
-            >
-              Reset to defaults
-            </button>
+      <section
+        aria-labelledby="products-heading"
+        className="surface-solid landing-panel overflow-hidden"
+      >
+        <div className="grid gap-5 border-b border-stone-200 px-5 py-6 sm:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] sm:items-end sm:px-8">
+          <div>
+            <p className="page-kicker mb-2">Menu catalogue</p>
+            <h2 id="products-heading" className="section-title text-3xl">
+              Products
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-stone-500">
+              Featured and availability updates save immediately. Edit a
+              product to update its details.
+            </p>
+          </div>
+          <div className="sm:justify-self-end">
+            <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-stone-500">
+              Menu actions
+            </p>
+            <div className="flex flex-wrap gap-2 sm:justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setDraft(emptyProduct(cats[0]?.slug ?? ""));
+                  setIsNew(true);
+                  setMessage("");
+                }}
+                className="btn-primary min-h-11 px-5 text-sm"
+              >
+                Add product
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  resetProducts();
+                  setItems(loadProducts());
+                  setMessage("Product edits reset to the defaults from data/products.ts.");
+                }}
+                className="btn-secondary min-h-11 px-4 text-sm"
+              >
+                Reset to defaults
+              </button>
+            </div>
           </div>
         </div>
-        <ul className="space-y-2">
+        <ul role="list" className="divide-y divide-stone-200">
+          {items.length === 0 ? (
+            <li
+              role="status"
+              className="px-5 py-10 text-center text-sm text-stone-500 sm:px-8"
+            >
+              No products yet. Add the first dish to start the menu.
+            </li>
+          ) : null}
           {items.map((p) => (
             <li
               key={p.slug}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-white px-4 py-2 text-sm"
+              className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8"
             >
-              <span className="font-semibold">
-                {p.name}{" "}
-                <span className="font-normal text-neutral-500">
-                  ({cats.find((c) => c.slug === p.category)?.name ?? p.category})
-                </span>
-              </span>
-              <span className="flex flex-wrap items-center gap-3">
-                <label className="flex items-center gap-1 text-xs text-neutral-600">
-                  Featured
+              <div className="flex min-w-0 items-start gap-4">
+                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-paper ring-1 ring-stone-200">
+                  <ProductImage
+                    src={p.image}
+                    alt=""
+                    width={p.imageWidth ?? 400}
+                    height={p.imageHeight ?? 300}
+                    fill
+                    sizes="64px"
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                    <span className="break-words font-semibold text-stone-950">
+                      {p.name}
+                    </span>
+                    {p.nameZh ? (
+                      <span
+                        lang="zh-Hans"
+                        className="font-cjk text-sm text-stone-500"
+                      >
+                        {p.nameZh}
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-stone-500">
+                    <span>
+                      {cats.find((c) => c.slug === p.category)?.name ?? p.category}
+                    </span>
+                    <span aria-hidden="true">·</span>
+                    <span>
+                      {p.priceCents != null
+                        ? `SGD ${centsToDollars(p.priceCents)}`
+                        : "Size pricing"}
+                    </span>
+                    {p.options ? (
+                      <>
+                        <span aria-hidden="true">·</span>
+                        <span>Custom options</span>
+                      </>
+                    ) : null}
+                  </p>
+                </div>
+              </div>
+              <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+                <label className="flex min-h-11 items-center gap-2 text-sm text-stone-600">
+                  <span className="sr-only">Featured on homepage for {p.name}</span>
                   <input
                     type="checkbox"
                     checked={p.featured}
@@ -201,10 +277,15 @@ export function ProductAdmin() {
                         )
                       )
                     }
-                    className="h-4 w-4 accent-red-700"
+                    className="h-5 w-5 accent-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                   />
+                  <span>Featured</span>
+                </label>
+                <label className="sr-only" htmlFor={`availability-${p.slug}`}>
+                  Availability for {p.name}
                 </label>
                 <select
+                  id={`availability-${p.slug}`}
                   value={p.availability}
                   onChange={(e) =>
                     persist(
@@ -218,7 +299,7 @@ export function ProductAdmin() {
                       )
                     )
                   }
-                  className="rounded border border-amber-300 bg-white px-2 py-1 text-xs"
+                  className="input min-h-11 w-full py-2 text-sm sm:w-auto"
                 >
                   <option value="available">Available</option>
                   <option value="sold_out">Sold out</option>
@@ -231,23 +312,42 @@ export function ProductAdmin() {
                     setIsNew(false);
                     setMessage("");
                   }}
-                  className="rounded bg-neutral-200 px-3 py-1 text-xs font-semibold hover:bg-neutral-300"
+                  aria-label={`Edit ${p.name}`}
+                  className="btn-secondary min-h-11 px-4 text-sm"
                 >
                   Edit
                 </button>
-              </span>
+              </div>
             </li>
           ))}
         </ul>
       </section>
 
       {draft ? (
-        <section className="rounded-xl border border-amber-300 bg-white p-6">
-          <h2 className="mb-4 text-lg font-semibold">
-            {isNew ? "New product" : `Edit: ${draft.name || "(unnamed)"}`}
-          </h2>
-          <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+        <section
+          aria-labelledby="product-editor-heading"
+          className="surface-solid landing-panel overflow-hidden p-5 sm:p-8"
+        >
+          <div className="mb-7 border-b border-stone-200 pb-6">
+            <p className="page-kicker mb-2">Menu details</p>
+            <h2 id="product-editor-heading" className="section-title text-3xl">
+              {isNew ? "New product" : `Edit: ${draft.name || "(unnamed)"}`}
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-stone-500">
+              Draft details save when you choose Save product; the preview
+              updates as you work.
+            </p>
+          </div>
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
             <div className="space-y-4">
+              <div className="border-b border-stone-200 pb-4">
+                <h3 className="font-display text-2xl font-medium text-stone-950">
+                  Dish information
+                </h3>
+                <p className="mt-1 text-sm leading-6 text-stone-500">
+                  Names, descriptions, and the menu category guests will see.
+                </p>
+              </div>
               <label className={labelCls}>
                 Name
                 <input
@@ -269,15 +369,21 @@ export function ProductAdmin() {
                 />
               </label>
               <label className={labelCls}>
-                Slug
+                Page link
                 <input
+                  id="draft-slug"
                   type="text"
                   value={draft.slug}
                   onChange={(e) => updateDraft({ slug: slugify(e.target.value) })}
                   placeholder={slugify(draft.name) || "auto-from-name"}
+                  aria-describedby="draft-slug-help"
                   className={inputCls}
                 />
               </label>
+              <p id="draft-slug-help" className="-mt-2 text-xs leading-5 text-stone-500">
+                Used in the web address. Leave blank to create it from the
+                product name.
+              </p>
               <label className={labelCls}>
                 Description
                 <textarea
@@ -301,84 +407,110 @@ export function ProductAdmin() {
                   ))}
                 </select>
               </label>
+              <p className="text-xs leading-5 text-stone-500">
+                Category changes save automatically in this workspace.
+              </p>
 
-              {sizes.length === 0 ? (
-                <label className={labelCls}>
-                  Price (SGD)
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.10"
-                    value={
-                      draft.priceCents != null
-                        ? centsToDollars(draft.priceCents)
-                        : ""
-                    }
-                    onChange={(e) =>
-                      updateDraft({
-                        priceCents:
-                          parseDollarsToCents(e.target.value) ?? undefined,
-                      })
-                    }
-                    className={inputCls}
-                  />
-                </label>
-              ) : (
-                <p className="text-sm text-neutral-500">
-                  This product is priced per size — set prices in the Sizes
-                  section below.
+              <div className="border-t border-stone-200 pt-6">
+                <h3 className="font-display text-2xl font-medium text-stone-950">
+                  Price &amp; availability
+                </h3>
+                <p className="mt-1 text-sm leading-6 text-stone-500">
+                  Set the current service status and whether this dish is featured.
                 </p>
-              )}
+                <div className="mt-4 space-y-4">
+                  {sizes.length === 0 ? (
+                    <label className={labelCls}>
+                      Price (SGD)
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.10"
+                        value={
+                          draft.priceCents != null
+                            ? centsToDollars(draft.priceCents)
+                            : ""
+                        }
+                        onChange={(e) =>
+                          updateDraft({
+                            priceCents:
+                              parseDollarsToCents(e.target.value) ?? undefined,
+                          })
+                        }
+                        className={inputCls}
+                      />
+                    </label>
+                  ) : (
+                    <p className="text-sm leading-6 text-stone-500">
+                      This product is priced per size — set prices in the Sizes
+                      section below.
+                    </p>
+                  )}
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className={labelCls}>
-                  Availability
-                  <select
-                    value={draft.availability}
-                    onChange={(e) =>
-                      updateDraft({
-                        availability: e.target.value as Availability,
-                      })
-                    }
-                    className={inputCls}
-                  >
-                    <option value="available">Available</option>
-                    <option value="sold_out">Sold out</option>
-                    <option value="unavailable">Unavailable</option>
-                  </select>
-                </label>
-                <label className="mt-6 flex items-center gap-2 text-sm font-medium">
-                  <input
-                    type="checkbox"
-                    checked={draft.featured}
-                    onChange={(e) => updateDraft({ featured: e.target.checked })}
-                    className="h-4 w-4 accent-red-700"
-                  />
-                  Feature on homepage
-                </label>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className={labelCls}>
+                      Availability
+                      <select
+                        value={draft.availability}
+                        onChange={(e) =>
+                          updateDraft({
+                            availability: e.target.value as Availability,
+                          })
+                        }
+                        className={inputCls}
+                      >
+                        <option value="available">Available</option>
+                        <option value="sold_out">Sold out</option>
+                        <option value="unavailable">Unavailable</option>
+                      </select>
+                    </label>
+                    <label className="mt-0 flex min-h-11 items-center gap-2 text-sm font-semibold text-stone-800 sm:mt-8">
+                      <input
+                        type="checkbox"
+                        checked={draft.featured}
+                        onChange={(e) =>
+                          updateDraft({ featured: e.target.checked })
+                        }
+                        className="h-5 w-5 accent-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                      />
+                      Feature on homepage
+                    </label>
+                  </div>
+                </div>
               </div>
 
               <div>
-                <span className={labelCls}>Product image</span>
-                <div className="mt-1 flex items-center gap-3">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleImageFile(e.target.files?.[0])}
-                    className="text-sm"
-                  />
-                </div>
-                <p className="mt-1 text-xs text-neutral-500">
+                <label htmlFor="product-image-upload" className={labelCls}>
+                  Product image
+                </label>
+                <input
+                  id="product-image-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleImageFile(e.target.files?.[0])}
+                  aria-describedby="product-image-help"
+                  className="mt-2 block min-h-11 w-full rounded-xl border border-dashed border-stone-300 bg-white/70 px-3 py-2 text-sm text-stone-700 outline-none transition file:mr-3 file:rounded-full file:border-0 file:bg-paper file:px-3 file:py-1.5 file:font-semibold file:text-stone-700 focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/20"
+                />
+                <p id="product-image-help" className="mt-2 text-xs leading-5 text-stone-500">
                   Upload replaces the image preview (stored locally for this
                   prototype).
                 </p>
               </div>
 
-              <fieldset className="rounded-lg border border-amber-200 p-4">
-                <legend className="px-1 text-sm font-semibold">Sizes</legend>
+              <fieldset className="rounded-2xl border border-stone-200 bg-paper p-4 sm:p-5">
+                <legend className="px-1 font-display text-xl font-medium text-stone-950">
+                  Sizes
+                </legend>
                 {sizes.map((size, i) => (
-                  <div key={i} className="mb-2 flex items-center gap-2">
+                  <div
+                    key={size.id}
+                    className="mb-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_7rem_auto] sm:items-center"
+                  >
+                    <label className="sr-only" htmlFor={`size-name-${size.id}`}>
+                      Size name
+                    </label>
                     <input
+                      id={`size-name-${size.id}`}
                       type="text"
                       value={size.name}
                       placeholder="Size name"
@@ -389,9 +521,13 @@ export function ProductAdmin() {
                           ),
                         })
                       }
-                      className="w-40 rounded border border-amber-300 px-2 py-1 text-sm"
+                      className={inlineInputCls}
                     />
+                    <label className="sr-only" htmlFor={`size-price-${size.id}`}>
+                      Price in SGD for {size.name || `size ${i + 1}`}
+                    </label>
                     <input
+                      id={`size-price-${size.id}`}
                       type="number"
                       min="0"
                       step="0.10"
@@ -409,7 +545,7 @@ export function ProductAdmin() {
                           ),
                         })
                       }
-                      className="w-24 rounded border border-amber-300 px-2 py-1 text-sm"
+                      className={inlineInputCls}
                     />
                     <button
                       type="button"
@@ -418,7 +554,8 @@ export function ProductAdmin() {
                           sizes: sizes.filter((_, j) => j !== i),
                         })
                       }
-                      className="text-xs text-red-700 underline"
+                      aria-label={`Remove ${size.name || `size ${i + 1}`}`}
+                      className="text-link min-h-11 text-sm text-brand-dark"
                     >
                       Remove
                     </button>
@@ -438,17 +575,17 @@ export function ProductAdmin() {
                       ],
                     })
                   }
-                  className="text-sm text-red-800 underline"
+                  className="text-link mt-1 text-sm text-brand-dark"
                 >
                   + Add size
                 </button>
-                <p className="mt-1 text-xs text-neutral-500">
+                <p className="mt-1 text-xs leading-5 text-stone-500">
                   Remove all sizes to use a single fixed price instead.
                 </p>
               </fieldset>
 
-              <fieldset className="rounded-lg border border-amber-200 p-4">
-                <legend className="px-1 text-sm font-semibold">
+              <fieldset className="rounded-2xl border border-stone-200 bg-paper p-4 sm:p-5">
+                <legend className="max-w-full px-1 font-display text-xl font-medium leading-tight text-stone-950">
                   Required single-choice option (e.g. spice level)
                 </legend>
                 {choiceGroup ? (
@@ -470,8 +607,18 @@ export function ProductAdmin() {
                       />
                     </label>
                     {choiceGroup.choices.map((choice, i) => (
-                      <div key={i} className="mb-2 mt-2 flex items-center gap-2">
+                      <div
+                        key={choice.id}
+                        className="mb-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-center"
+                      >
+                        <label
+                          className="sr-only"
+                          htmlFor={`choice-name-${choice.id}`}
+                        >
+                          Choice name
+                        </label>
                         <input
+                          id={`choice-name-${choice.id}`}
                           type="text"
                           value={choice.name}
                           placeholder="Choice name"
@@ -485,9 +632,16 @@ export function ProductAdmin() {
                               },
                             })
                           }
-                          className="w-40 rounded border border-amber-300 px-2 py-1 text-sm"
+                          className={inlineInputCls}
                         />
+                        <label
+                          className="sr-only"
+                          htmlFor={`choice-description-${choice.id}`}
+                        >
+                          Description for {choice.name || `choice ${i + 1}`}
+                        </label>
                         <input
+                          id={`choice-description-${choice.id}`}
                           type="text"
                           value={choice.description ?? ""}
                           placeholder="Description (optional)"
@@ -507,7 +661,7 @@ export function ProductAdmin() {
                               },
                             })
                           }
-                          className="w-40 rounded border border-amber-300 px-2 py-1 text-sm"
+                          className={inlineInputCls}
                         />
                         <button
                           type="button"
@@ -521,13 +675,14 @@ export function ProductAdmin() {
                               },
                             })
                           }
-                          className="text-xs text-red-700 underline"
+                          aria-label={`Remove ${choice.name || `choice ${i + 1}`}`}
+                          className="text-link min-h-11 text-sm text-brand-dark"
                         >
                           Remove
                         </button>
                       </div>
                     ))}
-                    <div className="mt-2 flex gap-4">
+                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
                       <button
                         type="button"
                         onClick={() =>
@@ -544,7 +699,7 @@ export function ProductAdmin() {
                             },
                           })
                         }
-                        className="text-sm text-red-800 underline"
+                        className="text-link text-sm text-brand-dark"
                       >
                         + Add choice
                       </button>
@@ -558,7 +713,7 @@ export function ProductAdmin() {
                             return { ...d, options: rest };
                           })
                         }
-                        className="text-sm text-neutral-600 underline"
+                        className="text-link text-sm"
                       >
                         Remove this option group
                       </button>
@@ -577,20 +732,27 @@ export function ProductAdmin() {
                         },
                       })
                     }
-                    className="text-sm text-red-800 underline"
+                    className="text-link mt-2 text-sm text-brand-dark"
                   >
                     + Add required single-choice option
                   </button>
                 )}
               </fieldset>
 
-              <fieldset className="rounded-lg border border-amber-200 p-4">
-                <legend className="px-1 text-sm font-semibold">
+              <fieldset className="rounded-2xl border border-stone-200 bg-paper p-4 sm:p-5">
+                <legend className="max-w-full px-1 font-display text-xl font-medium leading-tight text-stone-950">
                   Optional checkboxes (e.g. no bean sprouts)
                 </legend>
                 {checkboxes.map((box, i) => (
-                  <div key={i} className="mb-2 flex items-center gap-2">
+                  <div
+                    key={box.id}
+                    className="mb-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+                  >
+                    <label className="sr-only" htmlFor={`checkbox-name-${box.id}`}>
+                      Checkbox label
+                    </label>
                     <input
+                      id={`checkbox-name-${box.id}`}
                       type="text"
                       value={box.name}
                       placeholder="Checkbox label"
@@ -601,7 +763,7 @@ export function ProductAdmin() {
                           ),
                         })
                       }
-                      className="w-56 rounded border border-amber-300 px-2 py-1 text-sm"
+                      className={inlineInputCls}
                     />
                     <button
                       type="button"
@@ -610,7 +772,8 @@ export function ProductAdmin() {
                           checkboxes: checkboxes.filter((_, j) => j !== i),
                         })
                       }
-                      className="text-xs text-red-700 underline"
+                      aria-label={`Remove ${box.name || `checkbox ${i + 1}`}`}
+                      className="text-link min-h-11 text-sm text-brand-dark"
                     >
                       Remove
                     </button>
@@ -626,31 +789,36 @@ export function ProductAdmin() {
                       ],
                     })
                   }
-                  className="text-sm text-red-800 underline"
+                  className="text-link mt-1 text-sm text-brand-dark"
                 >
                   + Add checkbox
                 </button>
               </fieldset>
 
-              <label className={labelCls}>
-                Dietary notice (shown only on this product, optional)
-                <textarea
-                  value={draft.dietaryNotice ?? ""}
-                  onChange={(e) =>
-                    updateDraft({
-                      dietaryNotice: e.target.value || undefined,
-                    })
-                  }
-                  rows={2}
-                  className={inputCls}
-                />
-              </label>
+              <div className="border-t border-stone-200 pt-6">
+                <h3 className="font-display text-2xl font-medium text-stone-950">
+                  Guest-facing notes
+                </h3>
+                <label className={`${labelCls} mt-4`}>
+                  Dietary notice (shown only on this product, optional)
+                  <textarea
+                    value={draft.dietaryNotice ?? ""}
+                    onChange={(e) =>
+                      updateDraft({
+                        dietaryNotice: e.target.value || undefined,
+                      })
+                    }
+                    rows={2}
+                    className={inputCls}
+                  />
+                </label>
+              </div>
 
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-3 border-t border-stone-200 pt-6">
                 <button
                   type="button"
                   onClick={saveDraft}
-                  className="rounded-lg bg-red-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-red-800"
+                  className="btn-primary min-h-11 px-5 text-sm"
                 >
                   Save product
                 </button>
@@ -660,84 +828,136 @@ export function ProductAdmin() {
                     setDraft(null);
                     setIsNew(false);
                   }}
-                  className="rounded-lg bg-neutral-200 px-5 py-2.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-300"
+                  className="btn-secondary min-h-11 px-5 text-sm"
                 >
                   Cancel
                 </button>
               </div>
             </div>
 
-            <div>
-              <h3 className="mb-2 text-sm font-semibold">Card preview</h3>
-              <ProductCard
-                product={{
-                  ...draft,
-                  slug: draft.slug || slugify(draft.name) || "preview",
-                }}
-                preview
-              />
+            <div className="surface-glass h-fit p-5 sm:p-6 lg:sticky lg:top-28">
+              <p className="page-kicker mb-2">Guest preview · Selected dish</p>
+              <h3 className="font-display text-2xl font-medium text-stone-950">
+                Card preview
+              </h3>
+              <p className="mt-2 text-sm leading-6 text-stone-500">
+                A quick view of how this dish will read on the menu.
+              </p>
+              <div className="mt-4">
+                <ProductCard
+                  product={{
+                    ...draft,
+                    slug: draft.slug || slugify(draft.name) || "preview",
+                  }}
+                  preview
+                />
+              </div>
             </div>
           </div>
         </section>
       ) : null}
 
-      <section>
-        <h2 className="mb-3 text-lg font-semibold">Categories</h2>
-        <ul className="space-y-2">
+      <section
+        aria-labelledby="categories-heading"
+        className="surface-solid landing-panel overflow-hidden"
+      >
+        <div className="border-b border-stone-200 px-5 py-6 sm:px-8">
+          <p className="page-kicker mb-2">Menu structure</p>
+          <h2 id="categories-heading" className="section-title text-3xl">
+            Categories
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-stone-500">
+            Category names and descriptions save automatically as you edit them.
+          </p>
+        </div>
+        <ul role="list" className="divide-y divide-stone-200">
+          {cats.length === 0 ? (
+            <li
+              role="status"
+              className="px-5 py-10 text-center text-sm text-stone-500 sm:px-8"
+            >
+              No categories yet. Add one to organise the menu.
+            </li>
+          ) : null}
           {cats.map((c, i) => (
             <li
               key={c.slug}
-              className="flex flex-wrap items-center gap-2 rounded-lg border border-amber-200 bg-white px-4 py-2 text-sm"
+              className="grid gap-3 px-5 py-5 sm:grid-cols-[8rem_minmax(0,14rem)_minmax(0,1fr)] sm:items-center sm:px-8"
             >
-              <span className="w-32 font-mono text-xs text-neutral-500">
-                {c.slug}
-              </span>
-              <input
-                type="text"
-                value={c.name}
-                onChange={(e) =>
-                  persistCats(
-                    cats.map((x, j) =>
-                      j === i ? { ...x, name: e.target.value } : x
+              <div className="min-w-0">
+                <span className="text-[0.6875rem] font-bold uppercase tracking-[0.14em] text-stone-500">
+                  Page link
+                </span>
+                <code className="mt-1 block break-all font-mono text-xs text-stone-600">
+                  {c.slug}
+                </code>
+              </div>
+              <div className="min-w-0">
+                <label
+                  className="sr-only"
+                  htmlFor={`category-name-${c.slug}`}
+                >
+                  Category name for {c.slug}
+                </label>
+                <input
+                  id={`category-name-${c.slug}`}
+                  type="text"
+                  value={c.name}
+                  onChange={(e) =>
+                    persistCats(
+                      cats.map((x, j) =>
+                        j === i ? { ...x, name: e.target.value } : x
+                      )
                     )
-                  )
-                }
-                className="w-44 rounded border border-amber-300 px-2 py-1"
-              />
-              <input
-                type="text"
-                value={c.description ?? ""}
-                placeholder="Description"
-                onChange={(e) =>
-                  persistCats(
-                    cats.map((x, j) =>
-                      j === i
-                        ? { ...x, description: e.target.value || undefined }
-                        : x
+                  }
+                  className={inlineInputCls}
+                />
+              </div>
+              <div className="min-w-0">
+                <label
+                  className="sr-only"
+                  htmlFor={`category-description-${c.slug}`}
+                >
+                  Description for {c.name}
+                </label>
+                <input
+                  id={`category-description-${c.slug}`}
+                  type="text"
+                  value={c.description ?? ""}
+                  placeholder="Description"
+                  onChange={(e) =>
+                    persistCats(
+                      cats.map((x, j) =>
+                        j === i
+                          ? { ...x, description: e.target.value || undefined }
+                          : x
+                      )
                     )
-                  )
-                }
-                className="min-w-56 flex-1 rounded border border-amber-300 px-2 py-1"
-              />
+                  }
+                  className={inlineInputCls}
+                />
+              </div>
             </li>
           ))}
         </ul>
-        <button
-          type="button"
-          onClick={() => {
-            const name = window.prompt("New category name?");
-            if (!name?.trim()) return;
-            const slug = slugify(name);
-            if (cats.some((c) => c.slug === slug)) {
-              setMessage(`Category "${slug}" already exists.`);
-              return;
-            }
-            persistCats([...cats, { slug, name: name.trim() }]);
-          }}
-          className="mt-3 rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800"
-        >
-          + Add category
-        </button>
+        <div className="border-t border-stone-200 px-5 py-5 sm:px-8">
+          <button
+            type="button"
+            onClick={() => {
+              const name = window.prompt("New category name?");
+              if (!name?.trim()) return;
+              const slug = slugify(name);
+              if (cats.some((c) => c.slug === slug)) {
+                setMessage(`Category "${slug}" already exists.`);
+                return;
+              }
+              persistCats([...cats, { slug, name: name.trim() }]);
+            }}
+            className="btn-primary min-h-11 px-5 text-sm"
+          >
+            + Add category
+          </button>
+        </div>
       </section>
     </div>
   );

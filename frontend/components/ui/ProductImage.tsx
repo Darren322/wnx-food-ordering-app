@@ -6,6 +6,8 @@ interface ProductImageProps {
   width: number;
   height: number;
   className?: string;
+  fill?: boolean;
+  sizes?: string;
 }
 
 /**
@@ -18,6 +20,8 @@ export function ProductImage({
   width,
   height,
   className,
+  fill = false,
+  sizes,
 }: ProductImageProps) {
   if (src.endsWith(".svg") || src.startsWith("data:")) {
     return (
@@ -25,6 +29,11 @@ export function ProductImage({
       <img src={src} alt={alt} width={width} height={height} className={className} />
     );
   }
+
+  if (fill) {
+    return <Image src={src} alt={alt} fill sizes={sizes} className={className} />;
+  }
+
   return (
     <Image src={src} alt={alt} width={width} height={height} className={className} />
   );

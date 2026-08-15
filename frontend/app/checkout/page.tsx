@@ -10,7 +10,13 @@ export const metadata: Metadata = {
 export default function CheckoutPage() {
   return (
     <div>
-      <h1 className="mb-6 text-3xl font-extrabold text-red-900">Checkout</h1>
+      <header className="mb-7 max-w-2xl">
+        <p className="page-kicker">Pickup details</p>
+        <h1 className="page-title">Checkout</h1>
+        <p className="mt-3 leading-7 text-stone-600">
+          Tell us who is collecting and choose a convenient time.
+        </p>
+      </header>
       <CheckoutForm />
     </div>
   );

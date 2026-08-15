@@ -10,9 +10,13 @@ export const metadata: Metadata = {
 export default function PaymentPage() {
   return (
     <div>
-      <h1 className="mb-6 text-center text-3xl font-extrabold text-red-900">
-        Payment
-      </h1>
+      <header className="mx-auto mb-7 max-w-xl text-center">
+        <p className="page-kicker">Secure the preorder</p>
+        <h1 className="page-title">Payment</h1>
+        <p className="mt-3 leading-7 text-stone-600">
+          Complete the simulated PayNow step to confirm your pickup.
+        </p>
+      </header>
       <PaymentSimulator />
     </div>
   );

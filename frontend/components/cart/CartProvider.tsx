@@ -11,6 +11,7 @@ import {
 } from "react";
 import type { CartLine, CartLineSelection } from "@/types/cart";
 import { lineSubtotalCents } from "@/types/cart";
+import { replaceCartLine } from "@/lib/cart-lines";
 
 const STORAGE_KEY = "wnx-cart";
 
@@ -34,6 +35,7 @@ interface CartContextValue {
   itemCount: number;
   subtotalCents: number;
   addLine: (line: CartLine) => void;
+  replaceLine: (originalId: string, line: Omit<CartLine, "id">) => void;
   updateQuantity: (id: string, quantity: number) => void;
   removeLine: (id: string) => void;
   clearCart: () => void;
@@ -80,6 +82,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
+  const replaceLine = useCallback(
+    (originalId: string, line: Omit<CartLine, "id">) => {
+      const replacement = {
+        ...line,
+        id: makeLineId(line.productSlug, line.selection),
+      };
+      setLines((prev) => replaceCartLine(prev, originalId, replacement));
+    },
+    []
+  );
+
   const removeLine = useCallback((id: string) => {
     setLines((prev) => prev.filter((l) => l.id !== id));
   }, []);
@@ -98,11 +111,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
       itemCount,
       subtotalCents,
       addLine,
+      replaceLine,
       updateQuantity,
       removeLine,
       clearCart,
     };
-  }, [lines, hydrated, addLine, updateQuantity, removeLine, clearCart]);
+  }, [
+    lines,
+    hydrated,
+    addLine,
+    replaceLine,
+    updateQuantity,
+    removeLine,
+    clearCart,
+  ]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

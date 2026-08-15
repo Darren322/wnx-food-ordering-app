@@ -20,44 +20,80 @@ export function LoginForm() {
     }
   }
 
+  function clearError() {
+    if (error) setError("");
+  }
+
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="mx-auto max-w-sm space-y-4 rounded-xl border border-amber-200 bg-white p-6"
-    >
-      <p className="rounded-lg bg-amber-50 p-3 text-xs text-neutral-600">
-        Prototype login — credentials are hardcoded in the config (
-        <code>{adminCredentials.username}</code> /{" "}
-        <code>{adminCredentials.password}</code>). Replace with real
-        authentication before any deployment.
-      </p>
-      <label className="block text-sm font-medium">
+    <form onSubmit={handleSubmit} className="mt-7 space-y-5">
+      <label
+        htmlFor="owner-username"
+        className="block text-sm font-semibold text-stone-800"
+      >
         Username
         <input
+          id="owner-username"
           type="text"
           value={username}
-          onChange={(e) => setUsername(e.target.value)}
+          onChange={(e) => {
+            setUsername(e.target.value);
+            clearError();
+          }}
           autoComplete="username"
-          className="mt-1 w-full rounded-lg border border-amber-300 px-3 py-2"
+          autoCapitalize="none"
+          spellCheck={false}
+          required
+          aria-invalid={error ? true : undefined}
+          className="input mt-2 min-h-12 text-base"
         />
       </label>
-      <label className="block text-sm font-medium">
+      <label
+        htmlFor="owner-password"
+        className="block text-sm font-semibold text-stone-800"
+      >
         Password
         <input
+          id="owner-password"
           type="password"
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={(e) => {
+            setPassword(e.target.value);
+            clearError();
+          }}
           autoComplete="current-password"
-          className="mt-1 w-full rounded-lg border border-amber-300 px-3 py-2"
+          required
+          aria-invalid={error ? true : undefined}
+          className="input mt-2 min-h-12 text-base"
         />
       </label>
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
-      <button
-        type="submit"
-        className="w-full rounded-lg bg-red-700 px-5 py-2.5 font-semibold text-white hover:bg-red-800"
-      >
-        Log in
+      {error ? (
+        <p role="alert" className="form-error border-l-2 border-brand pl-3">
+          {error}
+        </p>
+      ) : null}
+      <button type="submit" className="btn-primary w-full">
+        Open owner dashboard
       </button>
+
+      <aside
+        className="border-t border-stone-200 pt-5"
+        aria-label="Prototype access details"
+      >
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-stone-500">
+          Prototype access
+        </p>
+        <p className="mt-2 text-sm leading-6 text-stone-600">
+          Use{" "}
+          <code className="rounded bg-paper px-1.5 py-0.5 font-semibold text-stone-800">
+            {adminCredentials.username}
+          </code>{" "}
+          and{" "}
+          <code className="rounded bg-paper px-1.5 py-0.5 font-semibold text-stone-800">
+            {adminCredentials.password}
+          </code>
+          . Replace this demo login with real authentication before deployment.
+        </p>
+      </aside>
     </form>
   );
 }

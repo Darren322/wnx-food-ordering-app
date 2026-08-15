@@ -21,16 +21,16 @@ export function ConfirmationView() {
   }, [id]);
 
   if (!loaded) {
-    return <p className="text-sm text-neutral-500">Loading your order…</p>;
+    return <p className="text-sm text-stone-500">Loading your order…</p>;
   }
 
   if (!order) {
     return (
-      <div className="rounded-xl border border-amber-200 bg-white p-8 text-center">
-        <p className="text-neutral-600">We could not find that order.</p>
+      <div className="surface-glass p-10 text-center">
+        <p className="text-stone-600">We could not find that order.</p>
         <Link
           href="/menu"
-          className="mt-4 inline-block rounded-lg bg-red-700 px-5 py-2.5 font-semibold text-white hover:bg-red-800"
+          className="btn-primary mt-5"
         >
           Back to the menu
         </Link>
@@ -38,26 +38,35 @@ export function ConfirmationView() {
     );
   }
 
+  const statusClass =
+    order.status === "confirmed"
+      ? "status-success"
+      : order.status === "awaiting_payment"
+        ? "status-pending"
+        : "rounded-3xl border border-brand/20 bg-brand-50 text-brand-dark";
+
   return (
-    <div className="mx-auto max-w-xl space-y-6">
-      <div className="rounded-xl border border-green-200 bg-green-50 p-6 text-center">
-        <h2 className="text-xl font-bold text-green-800">
+    <div className="surface-solid mx-auto max-w-xl overflow-hidden">
+      <div
+        className={`${statusClass} !rounded-none !border-x-0 !border-t-0 !border-b !border-stone-900/10 p-5 text-center sm:p-6`}
+      >
+        <h2 className="text-xl font-semibold">
           {order.status === "confirmed"
             ? "Payment received — order confirmed"
             : ORDER_STATUS_LABELS[order.status]}
         </h2>
-        <p className="mt-1 text-sm text-green-900">
+        <p className="mt-2 text-sm opacity-85">
           Order <span className="font-semibold">{order.id}</span> · Status:{" "}
           {ORDER_STATUS_LABELS[order.status]}
         </p>
       </div>
 
-      <div className="rounded-xl border border-amber-200 bg-white p-6">
+      <div className="surface-glass-strong !rounded-none p-5 sm:p-6">
         <h3 className="mb-3 font-semibold">Pickup details</h3>
-        <p className="text-sm text-neutral-700">
+        <p className="text-sm text-stone-700">
           {order.pickupDate} at {order.pickupTime} · self-pickup at the stall
         </p>
-        <p className="mt-1 text-sm text-neutral-700">
+        <p className="mt-1 text-sm text-stone-700">
           {order.customer.name} · {order.customer.phone}
         </p>
 
@@ -82,21 +91,21 @@ export function ConfirmationView() {
             </li>
           ))}
         </ul>
-        <p className="mt-3 border-t border-amber-200 pt-3 text-right font-bold text-red-800">
+        <p className="mt-4 border-t border-stone-200 pt-4 text-right font-bold text-brand">
           Total: {formatCents(order.subtotalCents)}
         </p>
         {order.payment ? (
-          <p className="mt-1 text-right text-xs text-neutral-500">
+          <p className="mt-1 text-right text-xs text-stone-500">
             Paid via {order.payment.method} · ref {order.payment.transactionId}
           </p>
         ) : null}
       </div>
 
-      <div className="flex justify-center gap-4 text-sm">
-        <Link href="/menu" className="text-red-800 underline">
+      <div className="flex flex-wrap justify-center gap-x-5 border-t border-stone-900/10 px-5 py-3 text-sm sm:justify-end sm:px-6">
+        <Link href="/menu" className="text-link text-sm">
           Order more from the menu
         </Link>
-        <Link href="/" className="text-neutral-600 underline">
+        <Link href="/" className="text-link text-sm">
           Back to homepage
         </Link>
       </div>

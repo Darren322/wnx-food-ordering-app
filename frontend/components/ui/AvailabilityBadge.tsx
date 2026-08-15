@@ -1,9 +1,9 @@
 import type { Availability } from "@/types/product";
 
 const styles: Record<Availability, string> = {
-  available: "bg-green-100 text-green-800",
-  sold_out: "bg-red-100 text-red-800",
-  unavailable: "bg-neutral-200 text-neutral-600",
+  available: "",
+  sold_out: "bg-brand-50 text-brand-dark ring-1 ring-brand/15",
+  unavailable: "bg-stone-200 text-stone-700 ring-1 ring-stone-300",
 };
 
 const labels: Record<Availability, string> = {
@@ -17,9 +17,11 @@ export function AvailabilityBadge({
 }: {
   availability: Availability;
 }) {
+  if (availability === "available") return null;
+
   return (
     <span
-      className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${styles[availability]}`}
+      className={`inline-flex min-h-7 items-center rounded-full px-3 py-1 text-xs font-semibold ${styles[availability]}`}
     >
       {labels[availability]}
     </span>

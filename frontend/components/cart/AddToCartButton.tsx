@@ -9,6 +9,10 @@ interface AddToCartButtonProps {
   image?: string;
   unitPriceCents: number;
   className?: string;
+  label?: string;
+  addedLabel?: string;
+  ariaLabel?: string;
+  addedAriaLabel?: string;
 }
 
 /** One-tap add for fixed-price products (no options). */
@@ -18,6 +22,10 @@ export function AddToCartButton({
   image,
   unitPriceCents,
   className,
+  label = "Add to cart",
+  addedLabel = "Added to cart",
+  ariaLabel,
+  addedAriaLabel,
 }: AddToCartButtonProps) {
   const { addLine } = useCart();
   const [added, setAdded] = useState(false);
@@ -40,12 +48,24 @@ export function AddToCartButton({
     <button
       type="button"
       onClick={handleClick}
+      aria-label={added ? (addedAriaLabel ?? ariaLabel) : ariaLabel}
+      aria-live="polite"
       className={
         className ??
-        "rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800"
+        "btn-primary px-4 text-sm"
       }
     >
-      {added ? "Added to cart" : "Add to cart"}
+      <span
+        key={added ? "added" : "add"}
+        aria-hidden={ariaLabel ? "true" : undefined}
+        className={
+          added
+            ? "motion-safe:animate-[add-confirm_280ms_cubic-bezier(0.34,1.56,0.64,1)]"
+            : "transition-transform duration-200 motion-safe:group-hover:scale-110"
+        }
+      >
+        {added ? addedLabel : label}
+      </span>
     </button>
   );
 }

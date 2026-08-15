@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import "@fontsource-variable/instrument-sans";
+import "@fontsource-variable/newsreader";
 import "./globals.css";
 import { getSiteUrl, siteDescription, siteName } from "@/lib/seo";
 import { CartProvider } from "@/components/cart/CartProvider";
@@ -34,10 +36,21 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-amber-50/40 text-neutral-900 antialiased">
+      <body className="app-canvas flex min-h-screen flex-col font-sans text-stone-900 antialiased">
+        <a
+          href="#main-content"
+          className="fixed left-4 top-4 z-50 -translate-y-24 rounded-full bg-graphite px-4 py-2 font-semibold text-white transition focus:translate-y-0 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2"
+        >
+          Skip to content
+        </a>
         <CartProvider>
           <Header />
-          <main className="mx-auto max-w-5xl px-4 py-8">{children}</main>
+          <main
+            id="main-content"
+            className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 sm:py-12 lg:px-8"
+          >
+            {children}
+          </main>
           <Footer />
         </CartProvider>
       </body>

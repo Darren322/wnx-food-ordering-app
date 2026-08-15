@@ -8,39 +8,55 @@ export function Header() {
   const { itemCount } = useCart();
 
   return (
-    <header className="sticky top-0 z-20 border-b border-amber-200 bg-amber-50/95 backdrop-blur">
-      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-        <Link href="/" className="flex items-center gap-3">
+    <header className="sticky top-0 z-20 px-3 py-3 sm:px-6 sm:py-4 lg:px-8">
+      <div className="toolbar-glass mx-auto flex w-full max-w-7xl flex-nowrap items-center justify-between gap-4 px-3 sm:gap-8 sm:px-6 lg:gap-10 lg:px-8">
+        <Link
+          href="/"
+          aria-label="Whampoa Nan Xiang home"
+          className="flex min-h-11 min-w-11 items-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+        >
           <Image
             src="/images/mascot.png"
-            alt="Whampoa Nan Xiang Chicken Rice mascot"
-            width={40}
-            height={40}
-            className="h-10 w-10 rounded-full"
+            alt=""
+            aria-hidden="true"
+            width={48}
+            height={48}
+            className="h-11 w-11 shrink-0 rounded-full bg-white shadow-sm ring-1 ring-brand/15"
           />
-          <span className="leading-tight">
-            <span className="block text-sm font-bold text-red-800">
-              Whampoa Nan Xiang
-            </span>
-            <span className="block text-xs text-neutral-600">
-              Chicken Rice 海南鸡饭 · Since 1982
-            </span>
-          </span>
         </Link>
-        <nav aria-label="Main" className="flex items-center gap-4 text-sm font-medium">
-          <Link href="/" className="text-neutral-700 hover:text-red-800">
-            Home
-          </Link>
-          <Link href="/menu" className="text-neutral-700 hover:text-red-800">
-            Menu
-          </Link>
-          <Link
-            href="/cart"
-            className="rounded-lg bg-red-700 px-3 py-1.5 text-white hover:bg-red-800"
+        <div className="flex shrink-0 items-center gap-2 sm:gap-4 lg:gap-5">
+          <nav
+            aria-label="Main"
+            className="flex shrink-0 items-center gap-2 text-sm font-semibold uppercase tracking-[0.12em] sm:gap-4 sm:text-[15px] lg:gap-6 lg:text-base"
           >
-            Cart{itemCount > 0 ? ` (${itemCount})` : ""}
+            <Link
+              href="/"
+              className="hidden min-h-11 items-center rounded-full px-3 text-stone-600 outline-none transition hover:bg-white/65 hover:text-brand focus-visible:ring-2 focus-visible:ring-brand sm:inline-flex sm:px-4 lg:px-5"
+            >
+              Home
+            </Link>
+            <Link
+              href="/menu"
+              className="inline-flex min-h-11 items-center rounded-full px-3 text-stone-600 outline-none transition hover:bg-white/65 hover:text-brand focus-visible:ring-2 focus-visible:ring-brand sm:px-4 lg:px-5"
+            >
+              Menu
+            </Link>
+            <Link href="/cart" className="btn-primary-sm">
+              Cart
+              {itemCount > 0 ? (
+                <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-white/15 px-1.5 py-0.5 text-xs tabular-nums">
+                  {itemCount}
+                </span>
+              ) : null}
+            </Link>
+          </nav>
+          <Link
+            href="/admin/login"
+            className="hidden min-h-11 items-center rounded-full border-l border-stone-900/10 pl-5 text-xs font-semibold normal-case tracking-normal text-stone-500 outline-none transition hover:text-brand focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 lg:inline-flex"
+          >
+            Owner login
           </Link>
-        </nav>
+        </div>
       </div>
     </header>
   );

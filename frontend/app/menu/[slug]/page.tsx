@@ -76,10 +76,14 @@ function productJsonLd(product: Product): Record<string, unknown> {
 
 export default async function ProductPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ edit?: string | string[] }>;
 }) {
   const { slug } = await params;
+  const query = await searchParams;
+  const editLineId = typeof query.edit === "string" ? query.edit : undefined;
   const product = getProductBySlug(slug);
   if (!product) notFound();
 
@@ -91,12 +95,18 @@ export default async function ProductPage({
     <article>
       <JsonLd data={productJsonLd(product)} />
 
-      <nav aria-label="Breadcrumb" className="mb-4 text-sm text-neutral-600">
-        <Link href="/" className="hover:text-red-800">
+      <nav aria-label="Breadcrumb" className="mb-5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-stone-500">
+        <Link
+          href="/"
+          className="rounded-sm outline-none transition hover:text-brand focus-visible:ring-2 focus-visible:ring-brand"
+        >
           Home
         </Link>
         {" / "}
-        <Link href="/menu" className="hover:text-red-800">
+        <Link
+          href="/menu"
+          className="rounded-sm outline-none transition hover:text-brand focus-visible:ring-2 focus-visible:ring-brand"
+        >
           Menu
         </Link>
         {category ? (
@@ -106,50 +116,61 @@ export default async function ProductPage({
           </>
         ) : null}
         {" / "}
-        <span className="text-neutral-900">{product.name}</span>
+        <span className="text-stone-900">{product.name}</span>
       </nav>
 
-      <div className="grid gap-8 md:grid-cols-2">
-        <div className="rounded-2xl border border-amber-200 bg-white p-6">
+      <div className="surface-solid grid items-stretch overflow-hidden md:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+        <div className="flex min-h-72 items-center overflow-hidden border-b border-stone-900/10 bg-[#eee5d5] p-4 sm:min-h-80 sm:p-6 md:min-h-[32rem] md:border-b-0 md:border-r">
           <ProductImage
             src={product.image}
             alt={`${product.name} at ${siteName}`}
             width={product.imageWidth ?? 600}
             height={product.imageHeight ?? 450}
-            className="mx-auto max-h-80 w-full object-contain"
+            className="mx-auto max-h-96 w-full object-contain"
           />
         </div>
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-extrabold text-red-900">
+        <div className="min-w-0 p-6 sm:p-8 lg:p-10">
+          <div className="flex flex-wrap items-start gap-3">
+            <h1 className="font-display text-4xl font-medium leading-none tracking-[-0.02em] text-stone-950">
               {product.name}
               {product.nameZh ? (
-                <span className="ml-2 text-xl font-normal text-neutral-500">
+                <span
+                  lang="zh-Hans"
+                  className="ml-2 font-cjk text-xl font-normal tracking-normal text-stone-400"
+                >
                   {product.nameZh}
                 </span>
               ) : null}
             </h1>
             <AvailabilityBadge availability={product.availability} />
           </div>
-          <p className="mt-3 text-neutral-700">{product.description}</p>
+          <p className="mt-4 leading-7 text-stone-600">{product.description}</p>
           {priceCents != null ? (
-            <p className="mt-3 text-2xl font-bold text-red-800">
+            <p className="mt-3 text-2xl font-bold text-brand">
               {hasSizes ? "from " : ""}
               {formatCents(priceCents)}
             </p>
           ) : null}
 
           {product.dietaryNotice ? (
-            <p
-              role="note"
-              className="mt-4 rounded-lg border border-amber-300 bg-amber-100 p-3 text-sm text-amber-900"
+            <aside
+              aria-labelledby="dietary-note-heading"
+              className="mt-5 border-l-2 border-brand/35 pl-4"
             >
-              {product.dietaryNotice}
-            </p>
+              <h2
+                id="dietary-note-heading"
+                className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-dark"
+              >
+                Dietary note
+              </h2>
+              <p className="mt-1 text-sm leading-6 text-stone-600">
+                {product.dietaryNotice}
+              </p>
+            </aside>
           ) : null}
 
           <div className="mt-6">
-            <ProductOrderForm product={product} />
+            <ProductOrderForm product={product} editLineId={editLineId} />
           </div>
         </div>
       </div>

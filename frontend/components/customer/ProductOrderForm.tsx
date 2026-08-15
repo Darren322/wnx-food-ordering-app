@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Product } from "@/types/product";
 import type { CartLineSelection } from "@/types/cart";
@@ -11,9 +12,17 @@ import { makeLineId, useCart } from "@/components/cart/CartProvider";
  * Per-product order form. Only the option groups configured on the product
  * are rendered — fixed-price products get just a quantity selector.
  */
-export function ProductOrderForm({ product }: { product: Product }) {
+interface ProductOrderFormProps {
+  product: Product;
+  editLineId?: string;
+}
+
+export function ProductOrderForm({
+  product,
+  editLineId,
+}: ProductOrderFormProps) {
   const router = useRouter();
-  const { addLine } = useCart();
+  const { lines, hydrated, addLine, replaceLine } = useCart();
 
   const sizes = product.options?.sizes ?? [];
   const choiceGroup = product.options?.requiredChoice;
@@ -25,9 +34,43 @@ export function ProductOrderForm({ product }: { product: Product }) {
   const [quantity, setQuantity] = useState(1);
   const [error, setError] = useState("");
   const [added, setAdded] = useState(false);
+  const initializedEditId = useRef<string | undefined>(undefined);
+
+  const editLine = editLineId
+    ? lines.find((line) => line.id === editLineId)
+    : undefined;
+
+  useEffect(() => {
+    if (
+      !editLineId ||
+      !hydrated ||
+      !editLine ||
+      editLine.productSlug !== product.slug ||
+      initializedEditId.current === editLineId
+    ) {
+      return;
+    }
+
+    initializedEditId.current = editLineId;
+    setSizeId(editLine.selection.sizeId);
+    setChoiceId(editLine.selection.choiceId);
+    setCheckedIds(
+      (editLine.selection.checkboxIds ?? []).filter((id) =>
+        product.options?.checkboxes?.some((checkbox) => checkbox.id === id)
+      )
+    );
+    setQuantity(Math.max(1, editLine.quantity));
+  }, [
+    editLine,
+    editLineId,
+    hydrated,
+    product.options?.checkboxes,
+    product.slug,
+  ]);
 
   const available = product.availability === "available";
   const selectedSize = sizes.find((s) => s.id === sizeId);
+  const selectedChoice = choiceGroup?.choices.find((c) => c.id === choiceId);
   const unitPriceCents = selectedSize
     ? selectedSize.priceCents
     : (product.priceCents ?? 0);
@@ -44,7 +87,7 @@ export function ProductOrderForm({ product }: { product: Product }) {
       setError("Please select a size.");
       return;
     }
-    if (choiceGroup && !choiceId) {
+    if (choiceGroup && !selectedChoice) {
       setError(`Please select a ${choiceGroup.name.toLowerCase()}.`);
       return;
     }
@@ -55,11 +98,10 @@ export function ProductOrderForm({ product }: { product: Product }) {
       selection.sizeId = selectedSize.id;
       selection.sizeName = selectedSize.name;
     }
-    if (choiceGroup && choiceId) {
-      const choice = choiceGroup.choices.find((c) => c.id === choiceId);
+    if (choiceGroup && selectedChoice) {
       selection.choiceGroupName = choiceGroup.name;
-      selection.choiceId = choiceId;
-      selection.choiceName = choice?.name;
+      selection.choiceId = selectedChoice.id;
+      selection.choiceName = selectedChoice.name;
     }
     if (checkedIds.length > 0) {
       selection.checkboxIds = checkedIds;
@@ -68,21 +110,49 @@ export function ProductOrderForm({ product }: { product: Product }) {
       );
     }
 
-    addLine({
-      id: makeLineId(product.slug, selection),
+    const nextLine = {
       productSlug: product.slug,
       productName: product.name,
       image: product.image,
       unitPriceCents,
       quantity,
       selection,
+    };
+
+    if (editLineId) {
+      replaceLine(editLineId, nextLine);
+      router.replace("/cart");
+      return;
+    }
+
+    addLine({
+      ...nextLine,
+      id: makeLineId(product.slug, selection),
     });
     setAdded(true);
   }
 
+  if (editLineId && !hydrated) {
+    return <p className="text-sm text-stone-500">Loading your choices…</p>;
+  }
+
+  if (
+    editLineId &&
+    (!editLine || editLine.productSlug !== product.slug)
+  ) {
+    return (
+      <div className="status-pending p-4 text-sm leading-6">
+        <p>This cart item is no longer available to edit.</p>
+        <Link href="/cart" className="text-link mt-1">
+          Back to cart
+        </Link>
+      </div>
+    );
+  }
+
   if (!available) {
     return (
-      <p className="rounded-lg bg-neutral-100 p-4 text-sm text-neutral-600">
+      <p className="status-pending p-4 text-sm leading-6">
         {product.availability === "sold_out"
           ? "This item is sold out. Please check back another day."
           : "This item is currently unavailable."}
@@ -91,7 +161,7 @@ export function ProductOrderForm({ product }: { product: Product }) {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {sizes.length > 0 ? (
         <fieldset>
           <legend className="mb-2 text-sm font-semibold">Size</legend>
@@ -99,10 +169,10 @@ export function ProductOrderForm({ product }: { product: Product }) {
             {sizes.map((size) => (
               <label
                 key={size.id}
-                className={`cursor-pointer rounded-lg px-4 py-2 text-sm ring-1 ${
+                className={`inline-flex min-h-11 cursor-pointer items-center rounded-full border px-4 py-2 text-sm outline-none transition focus-within:ring-2 focus-within:ring-brand focus-within:ring-offset-2 ${
                   sizeId === size.id
-                    ? "bg-red-700 text-white ring-red-700"
-                    : "bg-white text-neutral-700 ring-amber-300 hover:bg-amber-100"
+                    ? "border-stone-950 bg-graphite text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.24),0_7px_16px_-10px_rgba(12,10,9,0.85)]"
+                    : "border-stone-200 bg-surface text-stone-700 hover:bg-white"
                 }`}
               >
                 <input
@@ -124,16 +194,16 @@ export function ProductOrderForm({ product }: { product: Product }) {
         <fieldset>
           <legend className="mb-2 text-sm font-semibold">
             {choiceGroup.name}{" "}
-            <span className="font-normal text-red-700">(required)</span>
+            <span className="font-normal text-brand">(required)</span>
           </legend>
           <div className="flex flex-wrap gap-2">
             {choiceGroup.choices.map((choice) => (
               <label
                 key={choice.id}
-                className={`cursor-pointer rounded-lg px-4 py-2 text-sm ring-1 ${
+                className={`inline-flex min-h-11 cursor-pointer items-center rounded-full border px-4 py-2 text-sm outline-none transition focus-within:ring-2 focus-within:ring-brand focus-within:ring-offset-2 ${
                   choiceId === choice.id
-                    ? "bg-red-700 text-white ring-red-700"
-                    : "bg-white text-neutral-700 ring-amber-300 hover:bg-amber-100"
+                    ? "border-stone-950 bg-graphite text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.24),0_7px_16px_-10px_rgba(12,10,9,0.85)]"
+                    : "border-stone-200 bg-surface text-stone-700 hover:bg-white"
                 }`}
               >
                 <input
@@ -148,7 +218,7 @@ export function ProductOrderForm({ product }: { product: Product }) {
                 {choice.description ? (
                   <span
                     className={`ml-1 text-xs ${
-                      choiceId === choice.id ? "text-red-100" : "text-neutral-500"
+                      choiceId === choice.id ? "text-stone-300" : "text-stone-500"
                     }`}
                   >
                     ({choice.description})
@@ -167,13 +237,13 @@ export function ProductOrderForm({ product }: { product: Product }) {
             {checkboxes.map((box) => (
               <label
                 key={box.id}
-                className="flex items-center gap-2 text-sm text-neutral-700"
+                className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl px-2 text-sm text-stone-700 outline-none focus-within:ring-2 focus-within:ring-brand"
               >
                 <input
                   type="checkbox"
                   checked={checkedIds.includes(box.id)}
                   onChange={() => toggleCheckbox(box.id)}
-                  className="h-4 w-4 accent-red-700"
+                  className="h-4 w-4 accent-brand"
                 />
                 {box.name}
               </label>
@@ -182,14 +252,14 @@ export function ProductOrderForm({ product }: { product: Product }) {
         </fieldset>
       ) : null}
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 border-t border-stone-900/10 pt-5">
         <span className="text-sm font-semibold">Quantity</span>
-        <div className="flex items-center rounded-lg ring-1 ring-amber-300">
+        <div className="flex items-center rounded-full border border-stone-200 bg-surface shadow-sm">
           <button
             type="button"
             aria-label="Decrease quantity"
             onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-            className="px-3 py-1.5 text-lg"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-lg outline-none transition hover:bg-stone-100 focus-visible:ring-2 focus-visible:ring-brand"
           >
             −
           </button>
@@ -200,38 +270,52 @@ export function ProductOrderForm({ product }: { product: Product }) {
             type="button"
             aria-label="Increase quantity"
             onClick={() => setQuantity((q) => q + 1)}
-            className="px-3 py-1.5 text-lg"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-lg outline-none transition hover:bg-stone-100 focus-visible:ring-2 focus-visible:ring-brand"
           >
             +
           </button>
         </div>
       </div>
 
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {error ? (
+        <p role="alert" className="form-error">
+          {error}
+        </p>
+      ) : null}
 
-      <div className="flex flex-wrap items-center gap-4">
+      <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:gap-4">
         <button
           type="button"
           onClick={handleAdd}
-          className="rounded-lg bg-red-700 px-5 py-2.5 font-semibold text-white hover:bg-red-800"
+          className="btn-primary w-full px-5 sm:w-auto"
         >
-          Add to cart · {formatCents(subtotalCents)}
+          {editLineId ? "Save changes" : "Add to cart"} ·{" "}
+          {formatCents(subtotalCents)}
         </button>
-        <p className="text-sm text-neutral-600">
+        {editLineId ? (
+          <Link href="/cart" className="text-link justify-center px-2 text-sm">
+            Cancel
+          </Link>
+        ) : null}
+        <p className="text-sm text-stone-600">
           Subtotal:{" "}
-          <span className="font-bold text-red-800">
+          <span className="font-bold text-brand">
             {formatCents(subtotalCents)}
           </span>
         </p>
       </div>
 
       {added ? (
-        <p className="rounded-lg bg-green-50 p-3 text-sm text-green-800">
+        <p
+          role="status"
+          aria-live="polite"
+          className="status-success p-4 text-sm"
+        >
           Added to your cart.{" "}
           <button
             type="button"
             onClick={() => router.push("/cart")}
-            className="font-semibold underline"
+            className="inline-flex min-h-11 items-center rounded-sm font-semibold underline underline-offset-4 outline-none focus-visible:ring-2 focus-visible:ring-brand"
           >
             View cart
           </button>

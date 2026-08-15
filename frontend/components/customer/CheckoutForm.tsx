@@ -11,6 +11,10 @@ import {
   isSlotAllowed,
   type PickupDateOption,
 } from "@/lib/preorder";
+import {
+  loadPickupSelection,
+  savePickupSelection,
+} from "@/lib/pickup-selection";
 import { pickup } from "@/data/pickup";
 import { useCart } from "@/components/cart/CartProvider";
 import { savePendingOrder } from "@/components/cart/orderStorage";
@@ -33,29 +37,43 @@ export function CheckoutForm() {
 
   // Computed after mount only: slot availability depends on the current time.
   useEffect(() => {
-    const options = getPickupDates();
+    const now = new Date();
+    const options = getPickupDates(now);
+    const saved = loadPickupSelection(now);
+    const selectedDate =
+      saved && options.some((option) => option.value === saved.date)
+        ? saved.date
+        : options[0]?.value ?? "";
+    const nextSlots = selectedDate ? getPickupSlots(selectedDate, now) : [];
+    const selectedTime =
+      saved && saved.date === selectedDate && nextSlots.includes(saved.time)
+        ? saved.time
+        : nextSlots[0] ?? "";
+
     setDates(options);
-    if (options.length > 0) setDate(options[0].value);
+    setDate(selectedDate);
+    setSlots(nextSlots);
+    setTime(selectedTime);
   }, []);
 
-  useEffect(() => {
-    if (!date) return;
-    const s = getPickupSlots(date);
-    setSlots(s);
-    setTime(s[0] ?? "");
-  }, [date]);
+  function handleDateChange(nextDate: string) {
+    const nextSlots = getPickupSlots(nextDate);
+    setDate(nextDate);
+    setSlots(nextSlots);
+    setTime(nextSlots[0] ?? "");
+  }
 
   if (!hydrated) {
-    return <p className="text-sm text-neutral-500">Loading checkout…</p>;
+    return <p className="text-sm text-stone-500">Loading checkout…</p>;
   }
 
   if (lines.length === 0) {
     return (
-      <div className="rounded-xl border border-amber-200 bg-white p-8 text-center">
-        <p className="text-neutral-600">Your cart is empty.</p>
+      <div className="surface-glass p-10 text-center">
+        <p className="text-stone-600">Your cart is empty.</p>
         <Link
           href="/menu"
-          className="mt-4 inline-block rounded-lg bg-red-700 px-5 py-2.5 font-semibold text-white hover:bg-red-800"
+          className="btn-primary mt-5"
         >
           Browse the menu
         </Link>
@@ -84,6 +102,7 @@ export function CheckoutForm() {
       return;
     }
     setError("");
+    savePickupSelection({ date, time });
 
     const order: Order = {
       id: `WNX-${Date.now().toString(36).toUpperCase()}`,
@@ -102,104 +121,114 @@ export function CheckoutForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="max-w-xl space-y-6 rounded-xl border border-amber-200 bg-white p-6"
+      className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(17rem,0.68fr)] lg:gap-10"
     >
-      <section>
-        <h2 className="mb-3 text-lg font-semibold">Your details</h2>
-        <p className="mb-3 text-sm text-neutral-500">
-          Guest checkout — no account needed. We use your phone number only to
-          contact you about this order.
-        </p>
-        <div className="space-y-3">
-          <label className="block text-sm font-medium">
-            Name
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              autoComplete="name"
-              className="mt-1 w-full rounded-lg border border-amber-300 px-3 py-2"
-              placeholder="e.g. Alice Tan"
-            />
-          </label>
-          <label className="block text-sm font-medium">
-            Phone
-            <input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              autoComplete="tel"
-              className="mt-1 w-full rounded-lg border border-amber-300 px-3 py-2"
-              placeholder="e.g. 9123 4567"
-            />
-          </label>
-        </div>
-      </section>
+      <div className="surface-solid space-y-7 p-6 sm:p-8">
+        <section>
+          <h2 className="mb-3 text-lg font-semibold">Your details</h2>
+          <p className="mb-4 text-sm leading-6 text-stone-500">
+            Guest checkout — no account needed. We use your phone number only to
+            contact you about this order.
+          </p>
+          <div className="space-y-3">
+            <label className="block text-sm font-medium">
+              Name
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                autoComplete="name"
+                className="input mt-1"
+                placeholder="e.g. Alice Tan"
+              />
+            </label>
+            <label className="block text-sm font-medium">
+              Phone
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                autoComplete="tel"
+                className="input mt-1"
+                placeholder="e.g. 9123 4567"
+              />
+            </label>
+          </div>
+        </section>
 
-      <section>
-        <h2 className="mb-3 text-lg font-semibold">Self-pickup time</h2>
-        <p className="mb-3 text-sm text-neutral-500">
-          Same-day pickup is available for slots at least {pickup.leadTimeHours}{" "}
-          hours from now.
-        </p>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="block text-sm font-medium">
-            Date
-            <select
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-amber-300 bg-white px-3 py-2"
-            >
-              {dates.map((d) => (
-                <option key={d.value} value={d.value}>
-                  {d.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block text-sm font-medium">
-            Time
-            <select
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-amber-300 bg-white px-3 py-2"
-            >
-              {slots.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-      </section>
+        <section className="border-t border-stone-200/80 pt-7">
+          <h2 className="mb-3 text-lg font-semibold">Self-pickup time</h2>
+          <p className="mb-4 text-sm leading-6 text-stone-500">
+            Same-day pickup is available for slots at least {pickup.leadTimeHours}{" "}
+            hours from now.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block text-sm font-medium">
+              Date
+              <select
+                value={date}
+                onChange={(e) => handleDateChange(e.target.value)}
+                className="input mt-1"
+              >
+                {dates.map((d) => (
+                  <option key={d.value} value={d.value}>
+                    {d.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm font-medium">
+              Time
+              <select
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                className="input mt-1"
+              >
+                {slots.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </section>
+      </div>
 
-      <section className="rounded-lg bg-amber-50 p-4">
-        <h2 className="mb-2 text-sm font-semibold">Order summary</h2>
-        <ul className="space-y-1 text-sm text-neutral-700">
-          {lines.map((l) => (
-            <li key={l.id} className="flex justify-between gap-2">
-              <span>
-                {l.quantity} × {l.productName}
-                {l.selection.sizeName ? ` (${l.selection.sizeName})` : ""}
-              </span>
-              <span>{formatCents(l.unitPriceCents * l.quantity)}</span>
-            </li>
-          ))}
-        </ul>
-        <p className="mt-2 border-t border-amber-200 pt-2 text-right font-bold text-red-800">
-          {formatCents(subtotalCents)}
-        </p>
-      </section>
+      <div className="space-y-5 lg:sticky lg:top-[calc(var(--app-header-offset)+1rem)]">
+        <section className="surface-glass-strong p-5 sm:p-6">
+          <p className="page-kicker">Your preorder</p>
+          <h2 className="mb-4 font-display text-2xl font-medium text-stone-950">
+            Order summary
+          </h2>
+          <ul className="space-y-3 text-sm text-stone-700">
+            {lines.map((l) => (
+              <li key={l.id} className="flex justify-between gap-3">
+                <span>
+                  {l.quantity} × {l.productName}
+                  {l.selection.sizeName ? ` (${l.selection.sizeName})` : ""}
+                </span>
+                <span className="shrink-0 tabular-nums">
+                  {formatCents(l.unitPriceCents * l.quantity)}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-4 border-t border-stone-900/10 pt-4 text-right text-lg font-bold text-brand">
+            {formatCents(subtotalCents)}
+          </p>
+        </section>
 
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+        {error ? (
+          <p role="alert" className="form-error">
+            {error}
+          </p>
+        ) : null}
 
-      <button
-        type="submit"
-        className="w-full rounded-lg bg-red-700 px-5 py-3 font-semibold text-white hover:bg-red-800"
-      >
-        Continue to payment
-      </button>
+        <button type="submit" className="btn-primary w-full px-5 py-3">
+          Continue to payment
+        </button>
+      </div>
     </form>
   );
 }

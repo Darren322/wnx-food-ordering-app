@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { business } from "@/data/business";
 import { isAuthed, logout } from "@/components/admin/adminStore";
 
 const navItems = [
@@ -26,44 +27,68 @@ export function AdminShell({ children }: { children: ReactNode }) {
   }, [router]);
 
   if (!ready) {
-    return <p className="text-sm text-neutral-500">Checking access…</p>;
+    return (
+      <p
+        role="status"
+        aria-live="polite"
+        className="text-sm text-stone-500"
+      >
+        Checking access…
+      </p>
+    );
   }
 
   return (
     <div className="mx-auto max-w-6xl">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-amber-200 pb-4">
-        <nav aria-label="Admin" className="flex flex-wrap gap-2">
+      <header className="landing-shell-enter mb-8">
+        <div className="surface-solid p-5 sm:p-6">
+          <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+            <div className="min-w-0">
+              <p className="page-kicker">Owner desk · Private access</p>
+              <p className="font-display text-2xl font-medium leading-none tracking-[-0.02em] text-stone-950 sm:text-3xl">
+                {business.name}
+              </p>
+              <p className="mt-2 text-sm text-stone-500">
+                Stall {business.stallUnit} · Since {business.since}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-sm sm:justify-end">
+              <Link href="/" className="text-link px-2 text-sm">
+                View site
+              </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  logout();
+                  router.push("/admin/login");
+                }}
+                className="inline-flex min-h-11 items-center justify-center rounded-full border border-stone-200 bg-white/80 px-4 py-2 font-semibold text-stone-700 outline-none transition hover:bg-white hover:text-stone-950 focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+              >
+                Log out
+              </button>
+            </div>
+          </div>
+        </div>
+        <nav
+          aria-label="Admin"
+          className="toolbar-glass sticky top-[var(--app-header-offset)] z-30 mt-4 inline-flex max-w-full flex-wrap gap-1 p-1.5"
+        >
           {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               aria-current={pathname === item.href ? "page" : undefined}
-              className={`rounded-lg px-3 py-1.5 text-sm font-semibold ${
+              className={`pill inline-flex min-h-11 items-center outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 ${
                 pathname === item.href
-                  ? "bg-red-700 text-white"
-                  : "bg-white text-neutral-700 ring-1 ring-amber-300 hover:bg-amber-100"
+                  ? "pill-active"
+                  : "pill-inactive"
               }`}
             >
               {item.label}
             </Link>
           ))}
         </nav>
-        <div className="flex items-center gap-3 text-sm">
-          <Link href="/" className="text-neutral-600 underline">
-            View site
-          </Link>
-          <button
-            type="button"
-            onClick={() => {
-              logout();
-              router.push("/admin/login");
-            }}
-            className="rounded-lg bg-neutral-200 px-3 py-1.5 font-semibold text-neutral-700 hover:bg-neutral-300"
-          >
-            Log out
-          </button>
-        </div>
-      </div>
+      </header>
       {children}
     </div>
   );
