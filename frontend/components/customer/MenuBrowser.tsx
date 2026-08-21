@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Category, Product } from "@/types/product";
 import { ProductCard } from "@/components/customer/ProductCard";
 import { useCart } from "@/components/cart/CartProvider";
 import { lineSubtotalCents } from "@/types/cart";
 import { formatCents } from "@/lib/currency";
+import { loadCustomerCatalog } from "@/lib/catalog-storage";
 
 interface MenuBrowserProps {
   categories: Category[];
@@ -159,8 +160,26 @@ function MobileCartBar() {
  * contains the complete catalogue, while the client adds quick filtering and
  * the existing cart summary without changing product or storage contracts.
  */
-export function MenuBrowser({ categories, products }: MenuBrowserProps) {
+export function MenuBrowser({
+  categories: defaultCategories,
+  products: defaultProducts,
+}: MenuBrowserProps) {
   const [active, setActive] = useState<string>("all");
+  const [catalog, setCatalog] = useState({
+    categories: defaultCategories,
+    products: defaultProducts,
+  });
+
+  useEffect(() => {
+    setCatalog(
+      loadCustomerCatalog({
+        categories: defaultCategories,
+        products: defaultProducts,
+      }),
+    );
+  }, [defaultCategories, defaultProducts]);
+
+  const { categories, products } = catalog;
 
   const visible =
     active === "all"

@@ -3,6 +3,7 @@ import { categories, products } from "@/data/products";
 import { absoluteUrl } from "@/lib/seo";
 import { JsonLd } from "@/components/ui/JsonLd";
 import { MenuBrowser } from "@/components/customer/MenuBrowser";
+import { PickupContext } from "@/components/customer/HomePickupDialog";
 
 export const revalidate = 3600;
 
@@ -62,9 +63,10 @@ export default function MenuPage() {
         <h1 id="menu-heading" className="page-title">
           Our menu
         </h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-stone-600 sm:text-base">
-          Choose a category, add your dishes, and review everything in your cart.
-        </p>
+      </section>
+
+      <section aria-label="Current pickup time">
+        <PickupContext variant="menu" />
       </section>
 
       <MenuBrowser categories={categories} products={products} />

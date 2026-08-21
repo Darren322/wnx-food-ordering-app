@@ -109,7 +109,8 @@ export function CheckoutForm() {
               className="block text-sm font-semibold text-stone-800"
               htmlFor="checkout-name"
             >
-              Name
+              Name <span aria-hidden="true" className="text-brand">*</span>
+              <span className="sr-only"> (required)</span>
               <input
                 id="checkout-name"
                 type="text"
@@ -121,6 +122,7 @@ export function CheckoutForm() {
                 autoComplete="name"
                 className="input mt-1"
                 placeholder="e.g. Alice Tan"
+                required
                 aria-required="true"
                 aria-invalid={error === "Please enter your name."}
               />
@@ -129,7 +131,8 @@ export function CheckoutForm() {
               className="block text-sm font-semibold text-stone-800"
               htmlFor="checkout-phone"
             >
-              Phone
+              Phone <span aria-hidden="true" className="text-brand">*</span>
+              <span className="sr-only"> (required)</span>
               <input
                 id="checkout-phone"
                 type="tel"
@@ -141,6 +144,7 @@ export function CheckoutForm() {
                 autoComplete="tel"
                 className="input mt-1"
                 placeholder="e.g. 9123 4567"
+                required
                 aria-required="true"
                 aria-invalid={error === "Please enter your phone number."}
               />
@@ -167,6 +171,8 @@ export function CheckoutForm() {
             <PickupContext
               leadTimeHours={pickup.leadTimeHours}
               onSelectionChange={setPickupSelection}
+              showAvailability={false}
+              compactAction
             />
           </div>
         </section>

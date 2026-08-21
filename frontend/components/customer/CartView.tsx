@@ -181,7 +181,7 @@ export function CartView() {
         </div>
 
         <div className="mt-5 border-y border-stone-900/10 py-4">
-          <PickupContext />
+          <PickupContext showAvailability={false} compactAction />
         </div>
 
         <dl className="mt-5 border-t border-stone-900/10 pt-4">

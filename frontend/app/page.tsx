@@ -61,7 +61,7 @@ export default function HomePage() {
           sizes="(min-width: 1280px) 1280px, 100vw"
           className="object-cover object-[64%_center] sm:object-center"
         />
-        <div className="absolute inset-0 bg-stone-950/35" />
+        <div className="absolute inset-0 bg-stone-950/25" />
         <div className="relative flex min-h-[31rem] max-w-2xl flex-col justify-end px-5 py-8 text-white sm:min-h-[34rem] sm:px-10 sm:py-10 lg:min-h-[36rem] lg:px-14 lg:py-14">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-red-100">
             Whampoa · Since {business.since}
@@ -101,7 +101,7 @@ export default function HomePage() {
             id="pickup-heading"
             className="section-title max-w-2xl text-3xl sm:text-[2.5rem]"
           >
-            When should we have it ready?
+            Choose a pickup time
           </h2>
           <p className="mt-3 max-w-2xl text-base font-medium leading-7 text-stone-700 sm:text-lg">
             Please order at least {pickup.leadTimeHours} hours ahead.

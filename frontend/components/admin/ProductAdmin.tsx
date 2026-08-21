@@ -44,9 +44,8 @@ const labelCls = "block text-sm font-semibold text-stone-800";
 const inlineInputCls = "input min-h-11 min-w-0 px-3 py-2 text-sm";
 
 /**
- * Product & category manager. Edits persist to localStorage as an overlay
- * on data/products.ts (see adminStore.ts) — the public site keeps rendering
- * from the central data files.
+ * Product & category manager. Edits persist to localStorage as a prototype
+ * overlay that is also read by the customer menu in this browser.
  */
 export function ProductAdmin() {
   const [items, setItems] = useState<Product[]>([]);

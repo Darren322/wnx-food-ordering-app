@@ -25,7 +25,7 @@ function statusTone(status: Order["status"]): string {
     case "cancelled":
       return "bg-brand-50 text-brand-dark ring-brand/20";
     case "awaiting_payment":
-      return "bg-paper text-stone-800 ring-stone-200";
+      return "bg-amber-50 text-amber-950 ring-amber-200";
   }
 }
 
@@ -35,47 +35,46 @@ function pickupLabel(order: Order): string {
 
 function DashboardOrderRow({ order }: { order: Order }) {
   return (
-    <li className="grid gap-3 px-5 py-4 text-sm sm:grid-cols-[minmax(9rem,1fr)_minmax(10rem,1.2fr)_auto_auto] sm:items-center sm:px-7">
+    <li className="px-5 py-5 sm:px-7">
+      <article
+        aria-label={`Order ${order.id}`}
+        className="grid gap-4 sm:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_auto] sm:items-start sm:gap-6"
+      >
       <div className="min-w-0">
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-stone-500">
-          Order
-        </p>
-        <p className="mt-1 break-words font-semibold text-stone-950">
+        <p className="break-words text-base font-bold text-stone-950">
           {order.id}
         </p>
-        <p className="mt-1 break-words text-stone-700">
-          {order.customer.name} · {order.customer.phone}
+        <p className="mt-1 break-words text-base text-stone-700">
+          {order.customer.name} ·{" "}
+          <a
+            href={`tel:${order.customer.phone.replace(/\s+/g, "")}`}
+            className="font-semibold text-stone-900 underline decoration-stone-300 underline-offset-4"
+          >
+            {order.customer.phone}
+          </a>
         </p>
       </div>
 
       <div className="min-w-0">
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-stone-500">
-          Pickup · Singapore time
+        <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-stone-600">
+          Pickup
         </p>
-        <p className="mt-1 break-words font-semibold text-stone-950">
+        <p className="mt-1 break-words text-base font-bold text-stone-950">
           {pickupLabel(order)}
         </p>
       </div>
 
-      <div className="sm:text-right">
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-stone-500">
-          Total
-        </p>
-        <p className="mt-1 font-semibold text-brand">
+      <div className="flex items-center justify-between gap-3 sm:min-w-40 sm:flex-col sm:items-end sm:text-right">
+        <p className="text-lg font-bold text-brand-dark">
           {formatCents(order.subtotalCents)}
         </p>
-      </div>
-
-      <div className="sm:text-right">
-        <p className="text-xs font-bold uppercase tracking-[0.16em] text-stone-500">
-          Status
-        </p>
         <span
-          className={`mt-1 inline-flex min-h-8 items-center whitespace-nowrap rounded-sm px-2.5 py-1 text-xs font-semibold ring-1 ${statusTone(order.status)}`}
+          className={`inline-flex min-h-9 items-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-semibold ring-1 ${statusTone(order.status)}`}
         >
           {ORDER_STATUS_LABELS[order.status]}
         </span>
       </div>
+      </article>
     </li>
   );
 }
@@ -218,7 +217,7 @@ export function AdminDashboard() {
         aria-labelledby="today-pickups-heading"
         className="surface-solid overflow-hidden"
       >
-        <div className="flex flex-wrap items-end justify-between gap-4 border-b border-stone-200 px-5 py-5 sm:px-7">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-stone-200 px-5 py-5 sm:px-7">
           <div>
             <p className="page-kicker">02 · Scheduled pickups</p>
             <h2 id="today-pickups-heading" className="section-title">
@@ -246,14 +245,14 @@ export function AdminDashboard() {
         aria-labelledby="latest-orders-heading"
         className="surface-solid overflow-hidden"
       >
-        <div className="flex flex-wrap items-end justify-between gap-4 border-b border-stone-200 px-5 py-5 sm:px-7">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-stone-200 px-5 py-5 sm:px-7">
           <div>
             <p className="page-kicker">03 · Recent activity</p>
             <h2 id="latest-orders-heading" className="section-title">
               Recent orders
             </h2>
-            <p className="mt-2 text-sm text-stone-600">
-              Sorted by placed time · Includes demo data
+            <p className="mt-2 text-base font-medium text-stone-700">
+              Latest 5 orders
             </p>
           </div>
           <Link href="/admin/orders" className="text-link text-sm">

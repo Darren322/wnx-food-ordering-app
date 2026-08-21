@@ -4,19 +4,21 @@ import {
   products as defaultProducts,
 } from "@/data/products";
 import { adminCredentials } from "@/data/business";
+import {
+  CATEGORIES_STORAGE_KEY,
+  PRODUCTS_STORAGE_KEY,
+} from "@/lib/catalog-storage";
 
 /**
  * PROTOTYPE ONLY — admin persistence.
  *
  * "Auth" is a flag in localStorage checked against hardcoded demo
  * credentials. Product/category edits are stored as a localStorage overlay
- * on top of the central data files (data/products.ts); the public site
- * always renders from the data files.
+ * on top of the central data files (data/products.ts). Customer catalogue
+ * components read the same overlay so prototype edits are visible locally.
  */
 
 const AUTH_KEY = "wnx-admin-auth";
-const PRODUCTS_KEY = "wnx-admin-products";
-const CATEGORIES_KEY = "wnx-admin-categories";
 
 function available(): boolean {
   return typeof window !== "undefined";
@@ -52,26 +54,26 @@ function loadJson<T>(key: string): T | null {
 }
 
 export function loadProducts(): Product[] {
-  return loadJson<Product[]>(PRODUCTS_KEY) ?? defaultProducts;
+  return loadJson<Product[]>(PRODUCTS_STORAGE_KEY) ?? defaultProducts;
 }
 
 export function saveProducts(products: Product[]): void {
   if (available()) {
-    window.localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products));
+    window.localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(products));
   }
 }
 
 export function resetProducts(): void {
-  if (available()) window.localStorage.removeItem(PRODUCTS_KEY);
+  if (available()) window.localStorage.removeItem(PRODUCTS_STORAGE_KEY);
 }
 
 export function loadCategories(): Category[] {
-  return loadJson<Category[]>(CATEGORIES_KEY) ?? defaultCategories;
+  return loadJson<Category[]>(CATEGORIES_STORAGE_KEY) ?? defaultCategories;
 }
 
 export function saveCategories(categories: Category[]): void {
   if (available()) {
-    window.localStorage.setItem(CATEGORIES_KEY, JSON.stringify(categories));
+    window.localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(categories));
   }
 }
 

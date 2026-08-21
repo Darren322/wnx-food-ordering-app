@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { pickup } from "@/data/pickup";
 import {
-  formatPickupDate,
   getPickupSlots,
   isSlotAllowed,
   pickupDateRelation,
@@ -13,6 +12,7 @@ import {
 } from "@/lib/preorder";
 import {
   getPickupContextState,
+  getPickupDisplayState,
   type PickupContextState,
   type PickupSelection,
   savePickupSelection,
@@ -28,28 +28,16 @@ export interface PickupContextProps {
   emptyActionLabel?: string;
   /** Receives only persisted, currently valid selections. */
   onSelectionChange?: (selection: PickupSelection | null) => void;
+  /** Uses the compact, persistent summary shown above the menu. */
+  variant?: "default" | "menu";
+  /** Hides repeated operating context where the chosen slot is sufficient. */
+  showAvailability?: boolean;
+  /** Keeps pickup editing subordinate to a nearby primary checkout action. */
+  compactAction?: boolean;
 }
 
 interface HomePickupDialogProps {
   leadTimeHours: number;
-}
-
-function selectionLabel(
-  selection: PickupSelection,
-  availability: PickupAvailability | null,
-): string {
-  if (availability?.today.value === selection.date) {
-    return `Today · ${selection.time}`;
-  }
-
-  const option = availability?.dates.find(
-    (dateOption) => dateOption.value === selection.date,
-  );
-  const relation = availability
-    ? pickupDateRelation(selection.date, availability.today.value)
-    : null;
-  const dateLabel = option?.label ?? formatPickupDate(selection.date);
-  return `${relation ? `${relation} · ` : ""}${dateLabel} · ${selection.time}`;
 }
 
 function availabilityMessage(availability: PickupAvailability): string {
@@ -113,6 +101,9 @@ export function PickupContext({
   navigateTo,
   emptyActionLabel = "Choose pickup",
   onSelectionChange,
+  variant = "default",
+  showAvailability = true,
+  compactAction = false,
 }: PickupContextProps) {
   const router = useRouter();
   const now = useLiveNow();
@@ -225,32 +216,79 @@ export function PickupContext({
     if (navigateTo) router.push(navigateTo);
   }
 
+  const menuDisplay = availability
+    ? getPickupDisplayState({ availability, selection })
+    : {
+        status: "unselected" as const,
+        label: "Choose a pickup time",
+        actionLabel: "Choose pickup time",
+      };
+
   return (
     <>
-      <div className="space-y-2">
-        <p className="text-base font-medium text-stone-700" aria-live="polite">
-          <span className="font-bold text-stone-950">Pickup</span>{" "}
-          {selection
-            ? selectionLabel(selection, availability)
-            : "No time selected"}
-        </p>
-        {availability ? (
-          <p className="text-sm font-medium leading-6 text-stone-600">
-            {availabilityMessage(availability)}
-          </p>
-        ) : null}
-        <button
-          ref={triggerRef}
-          type="button"
-          className="btn-primary min-h-12 text-base"
-          onClick={prepareAndOpen}
-          aria-haspopup="dialog"
-          aria-expanded={open}
+      {variant === "menu" ? (
+        <div className="flex flex-col gap-4 border-l-4 border-brand bg-brand-soft px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <div className="min-w-0">
+            <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-brand-dark">
+              Pickup time
+            </p>
+            <p
+              className="mt-1 text-lg font-bold text-stone-950 sm:text-xl"
+              aria-live="polite"
+            >
+              {menuDisplay.label}
+            </p>
+          </div>
+          <button
+            ref={triggerRef}
+            type="button"
+            className="btn-secondary min-h-11 shrink-0 px-4 text-sm"
+            onClick={prepareAndOpen}
+            aria-haspopup="dialog"
+            aria-expanded={open}
+          >
+            {menuDisplay.actionLabel}
+          </button>
+        </div>
+      ) : (
+        <div
+          className={
+            compactAction
+              ? "flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+              : "space-y-2"
+          }
         >
-          {selection ? "Edit pickup" : emptyActionLabel}{" "}
-          <span aria-hidden="true" className="ml-2 text-lg">→</span>
-        </button>
-      </div>
+          <p
+            className="min-w-0 text-base font-medium text-stone-700"
+            aria-live="polite"
+          >
+            <span className="font-bold text-stone-950">Pickup</span>{" "}
+            {selection ? menuDisplay.label : "No time selected"}
+          </p>
+          {availability && showAvailability ? (
+            <p className="text-sm font-medium leading-6 text-stone-600">
+              {availabilityMessage(availability)}
+            </p>
+          ) : null}
+          <button
+            ref={triggerRef}
+            type="button"
+            className={
+              compactAction
+                ? "btn-secondary min-h-11 px-4 text-sm"
+                : "btn-primary min-h-12 text-base"
+            }
+            onClick={prepareAndOpen}
+            aria-haspopup="dialog"
+            aria-expanded={open}
+          >
+            {selection ? "Edit pickup" : emptyActionLabel}
+            {!compactAction ? (
+              <span aria-hidden="true" className="ml-2 text-lg">→</span>
+            ) : null}
+          </button>
+        </div>
+      )}
 
       {open ? (
         <div

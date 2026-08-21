@@ -1,5 +1,5 @@
 // @ts-expect-error Node's test runner resolves explicit TypeScript extensions.
-import { getPickupAvailability, getPickupSlots, isSlotAllowed, type PickupAvailability } from "./preorder.ts";
+import { formatPickupDate, getPickupAvailability, getPickupSlots, isSlotAllowed, pickupDateRelation, type PickupAvailability } from "./preorder.ts";
 
 /**
  * The small pickup context that follows a customer from the home page to
@@ -19,11 +19,55 @@ export interface PickupContextState {
   slots: string[];
 }
 
+export interface PickupDisplayState {
+  status: "selected" | "unselected";
+  label: string;
+  actionLabel: string;
+}
+
 interface StoredPickupSelection extends PickupSelection {
   version: 1;
 }
 
 export const PICKUP_SELECTION_STORAGE_KEY = "wnx-pickup-selection-v1";
+
+/** Customer-facing summary used by the menu's persistent pickup banner. */
+export function getPickupDisplayState(
+  context: Pick<PickupContextState, "availability" | "selection">,
+): PickupDisplayState {
+  const { availability, selection } = context;
+
+  if (!selection) {
+    return {
+      status: "unselected",
+      label: "Choose a pickup time",
+      actionLabel: "Choose pickup time",
+    };
+  }
+
+  if (availability.today.value === selection.date) {
+    return {
+      status: "selected",
+      label: `Today · ${selection.time}`,
+      actionLabel: "Change pickup",
+    };
+  }
+
+  const option = availability.dates.find(
+    (dateOption) => dateOption.value === selection.date,
+  );
+  const relation = pickupDateRelation(
+    selection.date,
+    availability.today.value,
+  );
+  const dateLabel = option?.label ?? formatPickupDate(selection.date);
+
+  return {
+    status: "selected",
+    label: `${relation ? `${relation} · ` : ""}${dateLabel} · ${selection.time}`,
+    actionLabel: "Change pickup",
+  };
+}
 
 /**
  * Build the current editable pickup context without persisting a fallback.
