@@ -1,8 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  OWNER_ACCESS_COOKIE,
-  isOwnerAccessCookie,
-} from "@/lib/admin-route";
+
+// Keep this small boundary self-contained. Vercel deploys middleware as an
+// Edge Function, where importing application modules can make the bundle
+// reference modules that the Edge runtime cannot load.
+const OWNER_ACCESS_COOKIE = "wnx-owner-access";
+const DEFAULT_OWNER_ROUTE_KEY = "counter";
+const OWNER_ROUTE_KEY_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+function getConfiguredOwnerRouteKey(): string {
+  const configured = process.env.OWNER_ROUTE_KEY?.trim() ?? "";
+  const withoutSlashes = configured.replace(/^\/+|\/+$/g, "");
+  const candidate = withoutSlashes.startsWith("owner/")
+    ? withoutSlashes.slice("owner/".length)
+    : withoutSlashes;
+  const normalized = candidate.toLowerCase();
+
+  return OWNER_ROUTE_KEY_PATTERN.test(normalized)
+    ? normalized
+    : DEFAULT_OWNER_ROUTE_KEY;
+}
 
 /**
  * Keep the established /admin route tree internally coherent while requiring
@@ -10,10 +26,9 @@ import {
  * This is route obscurity, not production authentication or authorization.
  */
 export function middleware(request: NextRequest) {
-  const environment = { OWNER_ROUTE_KEY: process.env.OWNER_ROUTE_KEY };
   const accessCookie = request.cookies.get(OWNER_ACCESS_COOKIE)?.value;
 
-  if (!isOwnerAccessCookie(accessCookie, environment)) {
+  if (accessCookie !== getConfiguredOwnerRouteKey()) {
     // A blank 404 reveals less about the owner workspace than a redirect.
     return new NextResponse(null, { status: 404 });
   }
