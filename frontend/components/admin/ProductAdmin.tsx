@@ -8,8 +8,13 @@ import type {
   ProductOptions,
 } from "@/types/product";
 import { centsToDollars, parseDollarsToCents } from "@/lib/currency";
+import {
+  replaceProductBySlug,
+  validateProductOptions,
+} from "@/lib/admin-products";
 import { ProductCard } from "@/components/customer/ProductCard";
 import { ProductImage } from "@/components/ui/ProductImage";
+import { ProductOptionFields } from "@/components/admin/ProductOptionFields";
 import {
   loadCategories,
   loadProducts,
@@ -36,8 +41,7 @@ function emptyProduct(categorySlug: string): Draft {
 
 const inputCls = "input mt-2 text-sm";
 const labelCls = "block text-sm font-semibold text-stone-800";
-const inlineInputCls =
-  "input min-h-11 min-w-0 rounded-xl px-3 py-2 text-sm";
+const inlineInputCls = "input min-h-11 min-w-0 px-3 py-2 text-sm";
 
 /**
  * Product & category manager. Edits persist to localStorage as an overlay
@@ -49,6 +53,7 @@ export function ProductAdmin() {
   const [cats, setCats] = useState<Category[]>([]);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [isNew, setIsNew] = useState(false);
+  const [editingSlug, setEditingSlug] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -108,17 +113,18 @@ export function ProductAdmin() {
       return;
     }
     const hasSizes = (draft.options?.sizes ?? []).length > 0;
-    if (!hasSizes && draft.priceCents == null) {
-      setMessage("Set a price, or add sizes with their own prices.");
+    if (!hasSizes && (!draft.priceCents || draft.priceCents <= 0)) {
+      setMessage("Set a price greater than zero, or add sizes with their own prices.");
+      return;
+    }
+    const optionsError = validateProductOptions(draft.options);
+    if (optionsError) {
+      setMessage(optionsError);
       return;
     }
     const slug = draft.slug.trim() || slugify(draft.name);
     if (!slug) {
       setMessage("Could not derive a slug — enter a product name.");
-      return;
-    }
-    if (items.some((p) => p.slug === slug && p.slug !== draft.slug)) {
-      setMessage(`Another product already uses the slug "${slug}".`);
       return;
     }
     const normalised: Product = { ...draft, slug };
@@ -131,12 +137,15 @@ export function ProductAdmin() {
     ) {
       delete normalised.options;
     }
-    const next = items.some((p) => p.slug === slug)
-      ? items.map((p) => (p.slug === slug ? normalised : p))
-      : [...items, normalised];
+    const next = replaceProductBySlug(items, editingSlug, normalised);
+    if (!next) {
+      setMessage(`Another product already uses the page link "${slug}".`);
+      return;
+    }
     persist(next);
     setDraft(null);
     setIsNew(false);
+    setEditingSlug(null);
     setMessage(`Saved "${normalised.name}".`);
   }
 
@@ -145,13 +154,13 @@ export function ProductAdmin() {
   const checkboxes = draft?.options?.checkboxes ?? [];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {message ? (
         <p
           role="status"
           aria-live="polite"
           aria-atomic="true"
-          className="rounded-2xl border border-stone-200 bg-surface px-4 py-3 text-sm text-stone-700 shadow-sm"
+          className="status-pending px-4 py-3 text-sm"
         >
           <span className="sr-only">Status: </span>
           {message}
@@ -160,7 +169,7 @@ export function ProductAdmin() {
 
       <section
         aria-labelledby="products-heading"
-        className="surface-solid landing-panel overflow-hidden"
+        className="surface-solid overflow-hidden"
       >
         <div className="grid gap-5 border-b border-stone-200 px-5 py-6 sm:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] sm:items-end sm:px-8">
           <div>
@@ -177,31 +186,41 @@ export function ProductAdmin() {
             <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-stone-500">
               Menu actions
             </p>
-            <div className="flex flex-wrap gap-2 sm:justify-end">
-              <button
-                type="button"
-                onClick={() => {
-                  setDraft(emptyProduct(cats[0]?.slug ?? ""));
-                  setIsNew(true);
-                  setMessage("");
-                }}
-                className="btn-primary min-h-11 px-5 text-sm"
-              >
-                Add product
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  resetProducts();
-                  setItems(loadProducts());
-                  setMessage("Product edits reset to the defaults from data/products.ts.");
-                }}
-                className="btn-secondary min-h-11 px-4 text-sm"
-              >
-                Reset to defaults
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setDraft(emptyProduct(cats[0]?.slug ?? ""));
+                setIsNew(true);
+                setEditingSlug(null);
+                setMessage("");
+              }}
+              className="btn-primary min-h-11 px-5 text-sm"
+            >
+              Add product
+            </button>
           </div>
+        </div>
+        <div className="flex flex-col gap-3 border-b border-stone-200 bg-paper px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8">
+          <div>
+            <p className="text-sm font-semibold text-stone-800">
+              Restore the default menu
+            </p>
+            <p className="mt-1 max-w-xl text-xs leading-5 text-stone-500">
+              Removes saved product edits from this browser and reloads the
+              original catalogue.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              resetProducts();
+              setItems(loadProducts());
+              setMessage("Product edits reset to the defaults from data/products.ts.");
+            }}
+            className="btn-secondary min-h-11 shrink-0 px-4 text-sm"
+          >
+            Reset to defaults
+          </button>
         </div>
         <ul role="list" className="divide-y divide-stone-200">
           {items.length === 0 ? (
@@ -218,7 +237,7 @@ export function ProductAdmin() {
               className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8"
             >
               <div className="flex min-w-0 items-start gap-4">
-                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-paper ring-1 ring-stone-200">
+                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md bg-paper ring-1 ring-stone-200">
                   <ProductImage
                     src={p.image}
                     alt=""
@@ -281,35 +300,41 @@ export function ProductAdmin() {
                   />
                   <span>Featured</span>
                 </label>
-                <label className="sr-only" htmlFor={`availability-${p.slug}`}>
-                  Availability for {p.name}
-                </label>
-                <select
-                  id={`availability-${p.slug}`}
-                  value={p.availability}
-                  onChange={(e) =>
-                    persist(
-                      items.map((x) =>
-                        x.slug === p.slug
-                          ? {
-                              ...x,
-                              availability: e.target.value as Availability,
-                            }
-                          : x
-                      )
-                    )
-                  }
-                  className="input min-h-11 w-full py-2 text-sm sm:w-auto"
+                <label
+                  className="flex min-h-11 w-full items-center gap-2 text-sm font-semibold text-stone-700 sm:w-auto"
+                  htmlFor={`availability-${p.slug}`}
                 >
-                  <option value="available">Available</option>
-                  <option value="sold_out">Sold out</option>
-                  <option value="unavailable">Unavailable</option>
-                </select>
+                  <span className="shrink-0 text-xs font-bold uppercase tracking-[0.12em] text-stone-500">
+                    Availability
+                  </span>
+                  <select
+                    id={`availability-${p.slug}`}
+                    value={p.availability}
+                    onChange={(e) =>
+                      persist(
+                        items.map((x) =>
+                          x.slug === p.slug
+                            ? {
+                                ...x,
+                                availability: e.target.value as Availability,
+                              }
+                            : x
+                        )
+                      )
+                    }
+                    className="input min-h-11 min-w-0 flex-1 py-2 text-sm sm:w-40 sm:flex-none"
+                  >
+                    <option value="available">Available</option>
+                    <option value="sold_out">Sold out</option>
+                    <option value="unavailable">Unavailable</option>
+                  </select>
+                </label>
                 <button
                   type="button"
                   onClick={() => {
                     setDraft(JSON.parse(JSON.stringify(p)) as Draft);
                     setIsNew(false);
+                    setEditingSlug(p.slug);
                     setMessage("");
                   }}
                   aria-label={`Edit ${p.name}`}
@@ -326,9 +351,9 @@ export function ProductAdmin() {
       {draft ? (
         <section
           aria-labelledby="product-editor-heading"
-          className="surface-solid landing-panel overflow-hidden p-5 sm:p-8"
+          className="surface-solid overflow-hidden p-4 sm:p-6"
         >
-          <div className="mb-7 border-b border-stone-200 pb-6">
+          <div className="mb-6 border-b border-stone-200 pb-5">
             <p className="page-kicker mb-2">Menu details</p>
             <h2 id="product-editor-heading" className="section-title text-3xl">
               {isNew ? "New product" : `Edit: ${draft.name || "(unnamed)"}`}
@@ -338,8 +363,8 @@ export function ProductAdmin() {
               updates as you work.
             </p>
           </div>
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
-            <div className="space-y-4">
+          <div className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+            <div className="space-y-5">
               <div className="border-b border-stone-200 pb-4">
                 <h3 className="font-display text-2xl font-medium text-stone-950">
                   Dish information
@@ -489,7 +514,7 @@ export function ProductAdmin() {
                   accept="image/*"
                   onChange={(e) => handleImageFile(e.target.files?.[0])}
                   aria-describedby="product-image-help"
-                  className="mt-2 block min-h-11 w-full rounded-xl border border-dashed border-stone-300 bg-white/70 px-3 py-2 text-sm text-stone-700 outline-none transition file:mr-3 file:rounded-full file:border-0 file:bg-paper file:px-3 file:py-1.5 file:font-semibold file:text-stone-700 focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/20"
+                  className="mt-2 block min-h-11 w-full rounded-[var(--radius-content)] border border-dashed border-stone-300 bg-white px-3 py-2 text-sm text-stone-700 outline-none transition file:mr-3 file:rounded-[var(--radius-control)] file:border-0 file:bg-paper file:px-3 file:py-1.5 file:font-semibold file:text-stone-700 focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/20"
                 />
                 <p id="product-image-help" className="mt-2 text-xs leading-5 text-stone-500">
                   Upload replaces the image preview (stored locally for this
@@ -497,303 +522,20 @@ export function ProductAdmin() {
                 </p>
               </div>
 
-              <fieldset className="rounded-2xl border border-stone-200 bg-paper p-4 sm:p-5">
-                <legend className="px-1 font-display text-xl font-medium text-stone-950">
-                  Sizes
-                </legend>
-                {sizes.map((size, i) => (
-                  <div
-                    key={size.id}
-                    className="mb-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_7rem_auto] sm:items-center"
-                  >
-                    <label className="sr-only" htmlFor={`size-name-${size.id}`}>
-                      Size name
-                    </label>
-                    <input
-                      id={`size-name-${size.id}`}
-                      type="text"
-                      value={size.name}
-                      placeholder="Size name"
-                      onChange={(e) =>
-                        updateOptions({
-                          sizes: sizes.map((s, j) =>
-                            j === i ? { ...s, name: e.target.value } : s
-                          ),
-                        })
-                      }
-                      className={inlineInputCls}
-                    />
-                    <label className="sr-only" htmlFor={`size-price-${size.id}`}>
-                      Price in SGD for {size.name || `size ${i + 1}`}
-                    </label>
-                    <input
-                      id={`size-price-${size.id}`}
-                      type="number"
-                      min="0"
-                      step="0.10"
-                      value={centsToDollars(size.priceCents)}
-                      onChange={(e) =>
-                        updateOptions({
-                          sizes: sizes.map((s, j) =>
-                            j === i
-                              ? {
-                                  ...s,
-                                  priceCents:
-                                    parseDollarsToCents(e.target.value) ?? 0,
-                                }
-                              : s
-                          ),
-                        })
-                      }
-                      className={inlineInputCls}
-                    />
-                    <button
-                      type="button"
-                      onClick={() =>
-                        updateOptions({
-                          sizes: sizes.filter((_, j) => j !== i),
-                        })
-                      }
-                      aria-label={`Remove ${size.name || `size ${i + 1}`}`}
-                      className="text-link min-h-11 text-sm text-brand-dark"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={() =>
-                    updateOptions({
-                      sizes: [
-                        ...sizes,
-                        {
-                          id: `size-${Date.now().toString(36)}`,
-                          name: "",
-                          priceCents: 0,
-                        },
-                      ],
-                    })
-                  }
-                  className="text-link mt-1 text-sm text-brand-dark"
-                >
-                  + Add size
-                </button>
-                <p className="mt-1 text-xs leading-5 text-stone-500">
-                  Remove all sizes to use a single fixed price instead.
-                </p>
-              </fieldset>
-
-              <fieldset className="rounded-2xl border border-stone-200 bg-paper p-4 sm:p-5">
-                <legend className="max-w-full px-1 font-display text-xl font-medium leading-tight text-stone-950">
-                  Required single-choice option (e.g. spice level)
-                </legend>
-                {choiceGroup ? (
-                  <>
-                    <label className={labelCls}>
-                      Group name
-                      <input
-                        type="text"
-                        value={choiceGroup.name}
-                        onChange={(e) =>
-                          updateOptions({
-                            requiredChoice: {
-                              ...choiceGroup,
-                              name: e.target.value,
-                            },
-                          })
-                        }
-                        className={inputCls}
-                      />
-                    </label>
-                    {choiceGroup.choices.map((choice, i) => (
-                      <div
-                        key={choice.id}
-                        className="mb-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-center"
-                      >
-                        <label
-                          className="sr-only"
-                          htmlFor={`choice-name-${choice.id}`}
-                        >
-                          Choice name
-                        </label>
-                        <input
-                          id={`choice-name-${choice.id}`}
-                          type="text"
-                          value={choice.name}
-                          placeholder="Choice name"
-                          onChange={(e) =>
-                            updateOptions({
-                              requiredChoice: {
-                                ...choiceGroup,
-                                choices: choiceGroup.choices.map((c, j) =>
-                                  j === i ? { ...c, name: e.target.value } : c
-                                ),
-                              },
-                            })
-                          }
-                          className={inlineInputCls}
-                        />
-                        <label
-                          className="sr-only"
-                          htmlFor={`choice-description-${choice.id}`}
-                        >
-                          Description for {choice.name || `choice ${i + 1}`}
-                        </label>
-                        <input
-                          id={`choice-description-${choice.id}`}
-                          type="text"
-                          value={choice.description ?? ""}
-                          placeholder="Description (optional)"
-                          onChange={(e) =>
-                            updateOptions({
-                              requiredChoice: {
-                                ...choiceGroup,
-                                choices: choiceGroup.choices.map((c, j) =>
-                                  j === i
-                                    ? {
-                                        ...c,
-                                        description:
-                                          e.target.value || undefined,
-                                      }
-                                    : c
-                                ),
-                              },
-                            })
-                          }
-                          className={inlineInputCls}
-                        />
-                        <button
-                          type="button"
-                          onClick={() =>
-                            updateOptions({
-                              requiredChoice: {
-                                ...choiceGroup,
-                                choices: choiceGroup.choices.filter(
-                                  (_, j) => j !== i
-                                ),
-                              },
-                            })
-                          }
-                          aria-label={`Remove ${choice.name || `choice ${i + 1}`}`}
-                          className="text-link min-h-11 text-sm text-brand-dark"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ))}
-                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          updateOptions({
-                            requiredChoice: {
-                              ...choiceGroup,
-                              choices: [
-                                ...choiceGroup.choices,
-                                {
-                                  id: `choice-${Date.now().toString(36)}`,
-                                  name: "",
-                                },
-                              ],
-                            },
-                          })
-                        }
-                        className="text-link text-sm text-brand-dark"
-                      >
-                        + Add choice
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setDraft((d) => {
-                            if (!d?.options) return d;
-                            const rest = { ...d.options };
-                            delete rest.requiredChoice;
-                            return { ...d, options: rest };
-                          })
-                        }
-                        className="text-link text-sm"
-                      >
-                        Remove this option group
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      updateOptions({
-                        requiredChoice: {
-                          name: "Spice level",
-                          choices: [
-                            { id: `choice-${Date.now().toString(36)}`, name: "" },
-                          ],
-                        },
-                      })
-                    }
-                    className="text-link mt-2 text-sm text-brand-dark"
-                  >
-                    + Add required single-choice option
-                  </button>
-                )}
-              </fieldset>
-
-              <fieldset className="rounded-2xl border border-stone-200 bg-paper p-4 sm:p-5">
-                <legend className="max-w-full px-1 font-display text-xl font-medium leading-tight text-stone-950">
-                  Optional checkboxes (e.g. no bean sprouts)
-                </legend>
-                {checkboxes.map((box, i) => (
-                  <div
-                    key={box.id}
-                    className="mb-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
-                  >
-                    <label className="sr-only" htmlFor={`checkbox-name-${box.id}`}>
-                      Checkbox label
-                    </label>
-                    <input
-                      id={`checkbox-name-${box.id}`}
-                      type="text"
-                      value={box.name}
-                      placeholder="Checkbox label"
-                      onChange={(e) =>
-                        updateOptions({
-                          checkboxes: checkboxes.map((b, j) =>
-                            j === i ? { ...b, name: e.target.value } : b
-                          ),
-                        })
-                      }
-                      className={inlineInputCls}
-                    />
-                    <button
-                      type="button"
-                      onClick={() =>
-                        updateOptions({
-                          checkboxes: checkboxes.filter((_, j) => j !== i),
-                        })
-                      }
-                      aria-label={`Remove ${box.name || `checkbox ${i + 1}`}`}
-                      className="text-link min-h-11 text-sm text-brand-dark"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={() =>
-                    updateOptions({
-                      checkboxes: [
-                        ...checkboxes,
-                        { id: `box-${Date.now().toString(36)}`, name: "" },
-                      ],
-                    })
-                  }
-                  className="text-link mt-1 text-sm text-brand-dark"
-                >
-                  + Add checkbox
-                </button>
-              </fieldset>
+              <ProductOptionFields
+                sizes={sizes}
+                choiceGroup={choiceGroup}
+                checkboxes={checkboxes}
+                updateOptions={updateOptions}
+                removeRequiredChoice={() => {
+                  setDraft((d) => {
+                    if (!d?.options) return d;
+                    const rest = { ...d.options };
+                    delete rest.requiredChoice;
+                    return { ...d, options: rest };
+                  });
+                }}
+              />
 
               <div className="border-t border-stone-200 pt-6">
                 <h3 className="font-display text-2xl font-medium text-stone-950">
@@ -827,6 +569,7 @@ export function ProductAdmin() {
                   onClick={() => {
                     setDraft(null);
                     setIsNew(false);
+                    setEditingSlug(null);
                   }}
                   className="btn-secondary min-h-11 px-5 text-sm"
                 >
@@ -835,7 +578,7 @@ export function ProductAdmin() {
               </div>
             </div>
 
-            <div className="surface-glass h-fit p-5 sm:p-6 lg:sticky lg:top-28">
+            <aside className="surface-soft h-fit p-4 sm:p-5 lg:sticky lg:top-28">
               <p className="page-kicker mb-2">Guest preview · Selected dish</p>
               <h3 className="font-display text-2xl font-medium text-stone-950">
                 Card preview
@@ -852,14 +595,14 @@ export function ProductAdmin() {
                   preview
                 />
               </div>
-            </div>
+            </aside>
           </div>
         </section>
       ) : null}
 
       <section
         aria-labelledby="categories-heading"
-        className="surface-solid landing-panel overflow-hidden"
+        className="surface-solid overflow-hidden"
       >
         <div className="border-b border-stone-200 px-5 py-6 sm:px-8">
           <p className="page-kicker mb-2">Menu structure</p>
@@ -882,7 +625,7 @@ export function ProductAdmin() {
           {cats.map((c, i) => (
             <li
               key={c.slug}
-              className="grid gap-3 px-5 py-5 sm:grid-cols-[8rem_minmax(0,14rem)_minmax(0,1fr)] sm:items-center sm:px-8"
+              className="grid gap-3 px-5 py-5 sm:grid-cols-[8rem_minmax(0,12rem)_minmax(0,1fr)] sm:items-end sm:px-8"
             >
               <div className="min-w-0">
                 <span className="text-[0.6875rem] font-bold uppercase tracking-[0.14em] text-stone-500">
@@ -894,10 +637,10 @@ export function ProductAdmin() {
               </div>
               <div className="min-w-0">
                 <label
-                  className="sr-only"
+                  className={labelCls}
                   htmlFor={`category-name-${c.slug}`}
                 >
-                  Category name for {c.slug}
+                  Category name
                 </label>
                 <input
                   id={`category-name-${c.slug}`}
@@ -910,21 +653,21 @@ export function ProductAdmin() {
                       )
                     )
                   }
-                  className={inlineInputCls}
+                  className={`${inlineInputCls} mt-2`}
                 />
               </div>
               <div className="min-w-0">
                 <label
-                  className="sr-only"
+                  className={labelCls}
                   htmlFor={`category-description-${c.slug}`}
                 >
-                  Description for {c.name}
+                  Customer-facing description
                 </label>
                 <input
                   id={`category-description-${c.slug}`}
                   type="text"
                   value={c.description ?? ""}
-                  placeholder="Description"
+                  placeholder="Shown under the category name"
                   onChange={(e) =>
                     persistCats(
                       cats.map((x, j) =>
@@ -934,7 +677,7 @@ export function ProductAdmin() {
                       )
                     )
                   }
-                  className={inlineInputCls}
+                  className={`${inlineInputCls} mt-2`}
                 />
               </div>
             </li>

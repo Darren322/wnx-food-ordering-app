@@ -51,13 +51,22 @@ function menuJsonLd(): Record<string, unknown> {
 
 export default function MenuPage() {
   return (
-    <div className="relative">
+    <div className="space-y-6 sm:space-y-8">
       <JsonLd data={menuJsonLd()} />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -top-20 right-0 -z-10 h-72 w-72 rounded-full bg-white/80 blur-3xl"
-      />
-      <h1 className="page-title mb-7 sm:mb-8">Menu</h1>
+
+      <section
+        aria-labelledby="menu-heading"
+        className="border-b border-stone-900/10 pb-5 sm:pb-6"
+      >
+        <p className="page-kicker mb-2">Whampoa Nan Xiang</p>
+        <h1 id="menu-heading" className="page-title">
+          Our menu
+        </h1>
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-stone-600 sm:text-base">
+          Choose a category, add your dishes, and review everything in your cart.
+        </p>
+      </section>
+
       <MenuBrowser categories={categories} products={products} />
     </div>
   );

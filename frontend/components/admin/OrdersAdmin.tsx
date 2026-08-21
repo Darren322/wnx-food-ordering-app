@@ -5,6 +5,7 @@ import type { Order, OrderStatus } from "@/types/order";
 import { ORDER_STATUS_LABELS } from "@/types/order";
 import { lineSubtotalCents } from "@/types/cart";
 import { formatCents } from "@/lib/currency";
+import { formatSingaporeDate } from "@/lib/admin-queue";
 import { mockOrders } from "@/data/mockOrders";
 import { loadOrders, saveOrder } from "@/components/cart/orderStorage";
 import {
@@ -53,16 +54,7 @@ function formatPickupDateTime(order: Order): string {
     return `${order.pickupDate} at ${order.pickupTime}`;
   }
 
-  return new Intl.DateTimeFormat("en-SG", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-    timeZone: "Asia/Singapore",
-  }).format(date);
+  return `${formatSingaporeDate(order.pickupDate)} · ${order.pickupTime}`;
 }
 
 function lineOptions(line: Order["lines"][number]): string {
@@ -79,6 +71,12 @@ function lineOptions(line: Order["lines"][number]): string {
       .filter(Boolean)
       .join(" · ") || "No options"
   );
+}
+
+function orderPaymentLabel(order: Order): string {
+  return order.payment
+    ? `Paid via ${order.payment.method}`
+    : "Payment not recorded";
 }
 
 export function OrdersAdmin() {
@@ -143,16 +141,13 @@ export function OrdersAdmin() {
     <div className="space-y-6">
       <section
         aria-labelledby="orders-queue-heading"
-        className="surface-solid landing-panel overflow-hidden"
+        className="surface-solid overflow-hidden"
       >
-        <div className="flex flex-col gap-5 border-b border-stone-200 px-5 py-5 sm:flex-row sm:items-end sm:justify-between sm:px-8 sm:py-6">
+        <div className="flex flex-col gap-5 border-b border-stone-200 px-5 py-5 sm:flex-row sm:items-end sm:justify-between sm:px-7">
           <div>
             <p className="page-kicker">Order queue</p>
-            <h2
-              id="orders-queue-heading"
-              className="section-title"
-            >
-              Incoming preorders
+            <h2 id="orders-queue-heading" className="section-title">
+              Pickup orders
             </h2>
             <p className="mt-3 text-sm leading-6 text-stone-600">
               Showing {shownCount} of {totalCount}{" "}
@@ -160,12 +155,12 @@ export function OrdersAdmin() {
             </p>
           </div>
 
-          <div className="surface-glass-strong w-full p-3 sm:max-w-56">
+          <div className="w-full sm:max-w-56">
             <label
               htmlFor="order-status-filter"
               className="mb-2 block text-xs font-bold uppercase tracking-[0.18em] text-brand"
             >
-              Filter status
+              Filter by status
             </label>
             <select
               id="order-status-filter"
@@ -173,14 +168,11 @@ export function OrdersAdmin() {
               onChange={(event) =>
                 setStatusFilter(event.target.value as OrderStatusFilter)
               }
-              className="input min-h-11 rounded-full font-semibold"
+              className="input min-h-11 font-semibold"
             >
               <option value="all">All orders ({totalCount})</option>
               {ORDER_STATUSES.map((status) => (
-                <option
-                  key={status}
-                  value={status}
-                >
+                <option key={status} value={status}>
                   {ORDER_STATUS_LABELS[status]} (
                   {rows.filter((row) => row.order.status === status).length})
                 </option>
@@ -191,7 +183,7 @@ export function OrdersAdmin() {
 
         {statusMessage ? (
           <p
-            className="status-success mx-5 mt-5 p-3 text-sm sm:mx-8"
+            className="status-success mx-5 mt-5 p-3 text-sm sm:mx-7"
             role="status"
             aria-live="polite"
           >
@@ -200,7 +192,7 @@ export function OrdersAdmin() {
         ) : null}
 
         {visibleRows.length === 0 ? (
-          <p className="px-5 py-8 text-sm text-stone-600 sm:px-8">
+          <p className="px-5 py-8 text-sm text-stone-600 sm:px-7">
             {rows.length === 0
               ? "No orders yet."
               : `No orders match ${
@@ -210,93 +202,48 @@ export function OrdersAdmin() {
                 }.`}
           </p>
         ) : (
-          <ul className="space-y-3 p-4 sm:p-6">
+          <ul className="divide-y divide-stone-200">
             {visibleRows.map(({ order, editable }) => (
-              <li key={order.id}>
-                <article
-                  aria-labelledby={`order-${order.id}`}
-                  className="surface-solid landing-panel overflow-hidden"
-                >
-                  <header className="grid gap-4 border-b border-stone-200 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:p-5">
+              <li key={order.id} className="px-5 py-5 sm:px-7">
+                <article aria-labelledby={`order-${order.id}`}>
+                  <header className="grid gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(12rem,0.8fr)_minmax(10rem,0.65fr)] lg:items-start">
                     <div className="min-w-0">
-                      <p className="page-kicker">Pickup</p>
-                      <p className="font-display text-xl font-medium leading-tight tracking-[-0.02em] text-stone-950 sm:text-2xl">
-                        {formatPickupDateTime(order)}
-                      </p>
-                      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                         <h3
                           id={`order-${order.id}`}
                           className="font-semibold tracking-tight text-stone-950"
                         >
                           {order.id}
                         </h3>
-                        <span className="rounded-full border border-stone-200 bg-paper px-3 py-1 text-xs font-semibold text-stone-600">
+                        <span className="rounded-sm border border-stone-200 bg-paper px-2 py-1 text-xs font-semibold text-stone-600">
                           {editable ? "Live order" : "Demo · read-only"}
                         </span>
                       </div>
-                      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm text-stone-600">
-                        <span>{order.customer.name}</span>
+                      <p className="mt-3 text-xs font-bold uppercase tracking-[0.16em] text-stone-500">
+                        Customer contact
+                      </p>
+                      <p className="mt-1 break-words text-sm text-stone-800">
+                        {order.customer.name} ·{" "}
                         <a
                           href={`tel:${order.customer.phone.replace(/\s+/g, "")}`}
                           className="text-link min-h-0 text-sm"
                         >
                           {order.customer.phone}
                         </a>
-                        <span>
-                          Placed {formatSingaporeDateTime(order.createdAt)}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex min-w-0 flex-col gap-2 sm:items-end">
-                      <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand">
-                        Status
                       </p>
-                      {editable ? (
-                        <label className="w-full sm:w-auto">
-                          <span className="sr-only">
-                            Update status for order {order.id}
-                          </span>
-                          <select
-                            aria-label={`Update status for order ${order.id}`}
-                            value={order.status}
-                            onChange={(event) =>
-                              updateStatus(
-                                order,
-                                event.target.value as OrderStatus
-                              )
-                            }
-                            className={`input min-h-11 w-full rounded-full px-4 py-2 text-sm font-semibold sm:min-w-48 ${statusToneClass(order.status)}`}
-                          >
-                            {ORDER_STATUSES.map((status) => (
-                              <option
-                                key={status}
-                                value={status}
-                              >
-                                {ORDER_STATUS_LABELS[status]}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                      ) : (
-                        <span
-                          className={`inline-flex min-h-11 flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-full border px-4 py-2 text-center text-sm font-semibold ${statusToneClass(order.status)}`}
-                        >
-                          <span>{ORDER_STATUS_LABELS[order.status]}</span>
-                          <span className="text-xs font-bold uppercase tracking-[0.12em] opacity-70">
-                            Demo · read-only
-                          </span>
-                        </span>
-                      )}
+                      <p className="mt-2 text-xs text-stone-500">
+                        Placed {formatSingaporeDateTime(order.createdAt)}
+                      </p>
                     </div>
-                  </header>
 
-                  <div className="p-4 sm:p-5">
-                    <div className="flex flex-wrap items-baseline justify-between gap-2">
-                      <h4 className="text-sm font-bold uppercase tracking-[0.16em] text-stone-700">
-                        Items
-                      </h4>
-                      <p className="text-sm text-stone-500">
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold uppercase tracking-[0.16em] text-stone-500">
+                        Pickup time · Singapore
+                      </p>
+                      <p className="mt-1 break-words font-semibold text-stone-950">
+                        {formatPickupDateTime(order)}
+                      </p>
+                      <p className="mt-2 text-xs text-stone-500">
                         {order.lines.reduce(
                           (total, line) => total + line.quantity,
                           0
@@ -310,21 +257,81 @@ export function OrdersAdmin() {
                       </p>
                     </div>
 
-                    <ul className="mt-2 divide-y divide-stone-200/80 overflow-hidden rounded-2xl border border-stone-200/80 bg-surface">
+                    <div className="min-w-0 lg:text-right">
+                      <p className="text-xs font-bold uppercase tracking-[0.16em] text-stone-500">
+                        Total
+                      </p>
+                      <p className="mt-1 text-lg font-bold text-stone-950">
+                        {formatCents(order.subtotalCents)}
+                      </p>
+                      <p className="mt-1 break-words text-xs text-stone-600">
+                        {orderPaymentLabel(order)}
+                      </p>
+                      {order.payment ? (
+                        <p className="mt-1 break-all text-xs text-stone-500">
+                          Ref {order.payment.transactionId}
+                        </p>
+                      ) : null}
+                      <div className="mt-3 lg:flex lg:justify-end">
+                        {editable ? (
+                          <label className="block w-full lg:w-auto">
+                            <span className="sr-only">
+                              Update status for order {order.id}
+                            </span>
+                            <select
+                              aria-label={`Update status for order ${order.id}`}
+                              value={order.status}
+                              onChange={(event) =>
+                                updateStatus(
+                                  order,
+                                  event.target.value as OrderStatus
+                                )
+                              }
+                              className={`input min-h-11 w-full px-3 py-2 text-sm font-semibold lg:min-w-48 ${statusToneClass(order.status)}`}
+                            >
+                              {ORDER_STATUSES.map((status) => (
+                                <option key={status} value={status}>
+                                  {ORDER_STATUS_LABELS[status]}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        ) : (
+                          <span
+                            className={`inline-flex min-h-11 items-center justify-center rounded-sm border px-3 py-2 text-sm font-semibold ${statusToneClass(order.status)}`}
+                          >
+                            {ORDER_STATUS_LABELS[order.status]}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </header>
+
+                  <div className="mt-5 border-t border-stone-200 pt-4">
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <h4 className="text-xs font-bold uppercase tracking-[0.16em] text-stone-700">
+                        Items
+                      </h4>
+                      <p className="text-xs text-stone-500">
+                        {order.lines.length} line
+                        {order.lines.length === 1 ? "" : "s"}
+                      </p>
+                    </div>
+                    <ul className="mt-2 divide-y divide-stone-200 border-y border-stone-200">
                       {order.lines.map((line) => (
                         <li
                           key={line.id}
-                          className="grid min-w-0 gap-2 p-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-start"
+                          className="grid min-w-0 gap-2 py-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-start"
                         >
                           <div className="min-w-0 break-words">
-                            <p className="font-semibold text-stone-950">
+                            <p className="text-sm font-semibold text-stone-950">
                               {line.productName} · ×{line.quantity}
                             </p>
-                            <p className="mt-1 break-words text-sm leading-6 text-stone-600">
+                            <p className="mt-1 break-words text-xs leading-5 text-stone-600">
                               {lineOptions(line)}
                             </p>
                           </div>
-                          <p className="text-sm text-stone-500 sm:text-right">
+                          <p className="text-xs text-stone-500 sm:text-right">
                             Unit {formatCents(line.unitPriceCents)}
                           </p>
                           <p className="text-sm font-semibold text-brand sm:text-right">
@@ -333,25 +340,6 @@ export function OrdersAdmin() {
                         </li>
                       ))}
                     </ul>
-
-                    <div className="mt-4 flex flex-col gap-2 border-t border-stone-200 pt-4 sm:flex-row sm:items-end sm:justify-between">
-                      {order.payment ? (
-                        <p className="break-words text-xs leading-5 text-stone-500">
-                          Paid via {order.payment.method} · ref{" "}
-                          {order.payment.transactionId}
-                        </p>
-                      ) : (
-                        <p className="text-xs font-semibold text-stone-500">
-                          Payment not recorded
-                        </p>
-                      )}
-                      <p className="text-right text-base font-bold text-stone-950">
-                        <span className="mr-2 text-xs font-bold uppercase tracking-[0.16em] text-brand">
-                          Total
-                        </span>
-                        {formatCents(order.subtotalCents)}
-                      </p>
-                    </div>
                   </div>
                 </article>
               </li>

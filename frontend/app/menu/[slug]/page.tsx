@@ -92,46 +92,54 @@ export default async function ProductPage({
   const hasSizes = (product.options?.sizes ?? []).length > 0;
 
   return (
-    <article>
+    <article className="-mx-4 pb-2 sm:mx-0 sm:pb-8">
       <JsonLd data={productJsonLd(product)} />
 
-      <nav aria-label="Breadcrumb" className="mb-5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-stone-500">
-        <Link
-          href="/"
-          className="rounded-sm outline-none transition hover:text-brand focus-visible:ring-2 focus-visible:ring-brand"
-        >
-          Home
-        </Link>
-        {" / "}
+      <nav aria-label="Breadcrumb" className="mb-4 px-4 text-sm text-stone-500 sm:px-0">
         <Link
           href="/menu"
-          className="rounded-sm outline-none transition hover:text-brand focus-visible:ring-2 focus-visible:ring-brand"
+          className="inline-flex min-h-11 items-center rounded-sm font-semibold outline-none transition hover:text-brand focus-visible:ring-2 focus-visible:ring-brand md:hidden"
         >
-          Menu
+          ← Back to menu
         </Link>
-        {category ? (
-          <>
-            {" / "}
-            <span>{category.name}</span>
-          </>
-        ) : null}
-        {" / "}
-        <span className="text-stone-900">{product.name}</span>
+        <div className="hidden flex-wrap items-center gap-x-1.5 gap-y-1 md:flex">
+          <Link
+            href="/"
+            className="rounded-sm outline-none transition hover:text-brand focus-visible:ring-2 focus-visible:ring-brand"
+          >
+            Home
+          </Link>
+          {" / "}
+          <Link
+            href="/menu"
+            className="rounded-sm outline-none transition hover:text-brand focus-visible:ring-2 focus-visible:ring-brand"
+          >
+            Menu
+          </Link>
+          {category ? (
+            <>
+              {" / "}
+              <span>{category.name}</span>
+            </>
+          ) : null}
+          {" / "}
+          <span className="text-stone-900">{product.name}</span>
+        </div>
       </nav>
 
-      <div className="surface-solid grid items-stretch overflow-hidden md:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-        <div className="flex min-h-72 items-center overflow-hidden border-b border-stone-900/10 bg-[#eee5d5] p-4 sm:min-h-80 sm:p-6 md:min-h-[32rem] md:border-b-0 md:border-r">
+      <div className="surface-solid grid items-stretch overflow-visible rounded-none border-x-0 shadow-none sm:rounded-[var(--radius-panel)] sm:border-x md:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] md:overflow-hidden md:shadow-[var(--shadow-raised)]">
+        <div className="flex min-h-56 items-center overflow-hidden border-b border-stone-900/10 bg-paper px-4 py-6 sm:min-h-80 sm:p-6 md:min-h-[32rem] md:border-b-0 md:border-r">
           <ProductImage
             src={product.image}
             alt={`${product.name} at ${siteName}`}
             width={product.imageWidth ?? 600}
             height={product.imageHeight ?? 450}
-            className="mx-auto max-h-96 w-full object-contain"
+            className="mx-auto max-h-64 w-full object-contain sm:max-h-80 md:max-h-96"
           />
         </div>
-        <div className="min-w-0 p-6 sm:p-8 lg:p-10">
+        <div className="min-w-0 px-4 pb-8 pt-6 sm:p-8 lg:p-10">
           <div className="flex flex-wrap items-start gap-3">
-            <h1 className="font-display text-4xl font-medium leading-none tracking-[-0.02em] text-stone-950">
+            <h1 className="font-display text-3xl font-medium leading-none tracking-[-0.02em] text-stone-950 sm:text-4xl">
               {product.name}
               {product.nameZh ? (
                 <span
@@ -169,7 +177,7 @@ export default async function ProductPage({
             </aside>
           ) : null}
 
-          <div className="mt-6">
+          <div className="mt-6 sm:mt-8">
             <ProductOrderForm product={product} editLineId={editLineId} />
           </div>
         </div>

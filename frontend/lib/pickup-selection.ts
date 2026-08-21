@@ -1,4 +1,5 @@
-import { isSlotAllowed } from "@/lib/preorder";
+// @ts-expect-error Node's test runner resolves explicit TypeScript extensions.
+import { getPickupAvailability, getPickupSlots, isSlotAllowed, type PickupAvailability } from "./preorder.ts";
 
 /**
  * The small pickup context that follows a customer from the home page to
@@ -10,11 +11,44 @@ export interface PickupSelection {
   time: string;
 }
 
+export interface PickupContextState {
+  availability: PickupAvailability;
+  selection: PickupSelection | null;
+  date: string;
+  time: string;
+  slots: string[];
+}
+
 interface StoredPickupSelection extends PickupSelection {
   version: 1;
 }
 
 export const PICKUP_SELECTION_STORAGE_KEY = "wnx-pickup-selection-v1";
+
+/**
+ * Build the current editable pickup context without persisting a fallback.
+ * A stale selection is rejected and replaced in the controls by the first
+ * currently available slot, while `selection` remains null until saved.
+ */
+export function getPickupContextState(
+  now: Date = new Date(),
+): PickupContextState {
+  const availability = getPickupAvailability(now);
+  const saved = loadPickupSelection(now);
+  const date =
+    saved && availability.dates.some((option) => option.value === saved.date)
+      ? saved.date
+      : availability.dates[0]?.value ?? "";
+  const slots = date ? getPickupSlots(date, now) : [];
+  const time =
+    saved && saved.date === date && slots.includes(saved.time)
+      ? saved.time
+      : slots[0] ?? "";
+  const selection =
+    saved && saved.date === date && slots.includes(saved.time) ? saved : null;
+
+  return { availability, selection, date, time, slots };
+}
 
 function clientStorage(): Storage | null {
   if (typeof window === "undefined") return null;

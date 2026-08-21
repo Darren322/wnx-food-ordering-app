@@ -13,11 +13,9 @@ export function Footer() {
           </p>
         </div>
         <div>
-          <p className="font-semibold text-stone-950">Visit us</p>
-          <p className="mt-1">
-            Address and opening hours will be published once confirmed with the
-            stall.
-          </p>
+          <p className="font-semibold text-stone-950">Pickup hours</p>
+          <p className="mt-1">Monday–Saturday · 10am–8:30pm</p>
+          <p className="mt-1">Closed Sunday</p>
         </div>
         <div>
           <p className="font-semibold text-stone-950">Quick links</p>
@@ -38,19 +36,11 @@ export function Footer() {
                 Your cart
               </Link>
             </li>
-            <li>
-              <Link
-                href="/admin/login"
-                className="inline-flex min-h-11 items-center rounded-sm outline-none transition hover:text-brand-dark focus-visible:ring-2 focus-visible:ring-brand"
-              >
-                Stall owner login
-              </Link>
-            </li>
           </ul>
         </div>
       </div>
       <p className="border-t border-stone-900/10 py-4 text-center text-xs text-stone-500">
-        Preorder &amp; self-pickup prototype. Contact details to be confirmed.
+        Self-pickup preorders require at least 6 hours&apos; notice.
       </p>
     </footer>
   );

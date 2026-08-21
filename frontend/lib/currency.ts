@@ -3,9 +3,9 @@
  * Use these helpers at the display/input boundary.
  */
 
-/** Format integer cents for display, e.g. 450 -> "$4.50". */
+/** Format integer cents for display, e.g. 450 -> "S$4.50". */
 export function formatCents(cents: number): string {
-  return `$${(cents / 100).toFixed(2)}`;
+  return `S$${(cents / 100).toFixed(2)}`;
 }
 
 /** Parse a user-entered dollar string (e.g. "4.50") to cents. Null if invalid. */

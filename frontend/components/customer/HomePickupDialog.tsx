@@ -2,27 +2,120 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { pickup } from "@/data/pickup";
 import {
-  getPickupDates,
+  formatPickupDate,
   getPickupSlots,
   isSlotAllowed,
+  pickupDateRelation,
+  type PickupAvailability,
   type PickupDateOption,
 } from "@/lib/preorder";
 import {
-  loadPickupSelection,
+  getPickupContextState,
+  type PickupContextState,
+  type PickupSelection,
   savePickupSelection,
 } from "@/lib/pickup-selection";
+import { useLiveNow } from "@/lib/use-live-now";
+
+export interface PickupContextProps {
+  /** Lead-time copy shown to customers; defaults to the six-hour contract. */
+  leadTimeHours?: number;
+  /** Optional destination for the home entry point; omitted means stay put. */
+  navigateTo?: string;
+  /** Label for an unselected context, e.g. "Order now" on the home entry. */
+  emptyActionLabel?: string;
+  /** Receives only persisted, currently valid selections. */
+  onSelectionChange?: (selection: PickupSelection | null) => void;
+}
 
 interface HomePickupDialogProps {
   leadTimeHours: number;
 }
 
+function selectionLabel(
+  selection: PickupSelection,
+  availability: PickupAvailability | null,
+): string {
+  if (availability?.today.value === selection.date) {
+    return `Today · ${selection.time}`;
+  }
+
+  const option = availability?.dates.find(
+    (dateOption) => dateOption.value === selection.date,
+  );
+  const relation = availability
+    ? pickupDateRelation(selection.date, availability.today.value)
+    : null;
+  const dateLabel = option?.label ?? formatPickupDate(selection.date);
+  return `${relation ? `${relation} · ` : ""}${dateLabel} · ${selection.time}`;
+}
+
+function availabilityMessage(availability: PickupAvailability): string {
+  if (availability.today.available) {
+    return `Order for today by ${availability.today.cutoff} Singapore time.`;
+  }
+
+  const earliest = availability.earliestNext;
+  if (!earliest) return "No pickup times are available right now.";
+
+  const closedMessage = availability.today.cutoff
+    ? `Today’s preorder cutoff was ${availability.today.cutoff}.`
+    : "Closed today.";
+  const relation = pickupDateRelation(
+    earliest.date.value,
+    availability.today.value,
+  );
+  const dateLabel = relation
+    ? `${relation} (${earliest.date.label})`
+    : earliest.date.label;
+  return `${closedMessage} Next pickup: ${dateLabel} · ${earliest.time}.`;
+}
+
+function pickupOptionLabel(
+  option: PickupDateOption,
+  availability: PickupAvailability | null,
+): string {
+  if (!availability) return option.label;
+  const relation = pickupDateRelation(
+    option.value,
+    availability.today.value,
+  );
+  return `${relation ? `${relation} · ` : ""}${option.label}`;
+}
+
+function applyContext(
+  context: PickupContextState,
+  setAvailability: (value: PickupAvailability) => void,
+  setDates: (value: PickupDateOption[]) => void,
+  setDate: (value: string) => void,
+  setSlots: (value: string[]) => void,
+  setTime: (value: string) => void,
+  setSelection: (value: PickupSelection | null) => void,
+  onSelectionChange?: (selection: PickupSelection | null) => void,
+) {
+  setAvailability(context.availability);
+  setDates(context.availability.dates);
+  setDate(context.date);
+  setSlots(context.slots);
+  setTime(context.time);
+  setSelection(context.selection);
+  onSelectionChange?.(context.selection);
+}
+
 /**
- * A deliberately small pickup decision before the customer enters the menu.
- * The slot is remembered so the rest of the order can stay focused on food.
+ * Compact pickup context for menu, cart, and checkout. It stays on the
+ * current route after saving unless a caller explicitly supplies `navigateTo`.
  */
-export function HomePickupDialog({ leadTimeHours }: HomePickupDialogProps) {
+export function PickupContext({
+  leadTimeHours = pickup.leadTimeHours,
+  navigateTo,
+  emptyActionLabel = "Choose pickup",
+  onSelectionChange,
+}: PickupContextProps) {
   const router = useRouter();
+  const now = useLiveNow();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
@@ -32,6 +125,24 @@ export function HomePickupDialog({ leadTimeHours }: HomePickupDialogProps) {
   const [slots, setSlots] = useState<string[]>([]);
   const [time, setTime] = useState("");
   const [error, setError] = useState("");
+  const [selection, setSelection] = useState<PickupSelection | null>(null);
+  const [availability, setAvailability] = useState<PickupAvailability | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (open) return;
+    applyContext(
+      getPickupContextState(now),
+      setAvailability,
+      setDates,
+      setDate,
+      setSlots,
+      setTime,
+      setSelection,
+      onSelectionChange,
+    );
+  }, [now, onSelectionChange, open]);
 
   useEffect(() => {
     if (!open) return;
@@ -72,24 +183,17 @@ export function HomePickupDialog({ leadTimeHours }: HomePickupDialogProps) {
   }, [open]);
 
   function prepareAndOpen() {
-    const now = new Date();
-    const nextDates = getPickupDates(now);
-    const saved = loadPickupSelection(now);
-    const savedDate = saved?.date;
-    const nextDate =
-      savedDate && nextDates.some((option) => option.value === savedDate)
-        ? savedDate
-        : nextDates[0]?.value ?? "";
-    const nextSlots = nextDate ? getPickupSlots(nextDate, now) : [];
-    const nextTime =
-      saved && saved.date === nextDate && nextSlots.includes(saved.time)
-        ? saved.time
-        : nextSlots[0] ?? "";
-
-    setDates(nextDates);
-    setDate(nextDate);
-    setSlots(nextSlots);
-    setTime(nextTime);
+    const actionNow = new Date();
+    applyContext(
+      getPickupContextState(actionNow),
+      setAvailability,
+      setDates,
+      setDate,
+      setSlots,
+      setTime,
+      setSelection,
+      onSelectionChange,
+    );
     setError("");
     setOpen(true);
   }
@@ -99,7 +203,7 @@ export function HomePickupDialog({ leadTimeHours }: HomePickupDialogProps) {
   }
 
   function handleDateChange(nextDate: string) {
-    const nextSlots = getPickupSlots(nextDate);
+    const nextSlots = getPickupSlots(nextDate, new Date());
     setDate(nextDate);
     setSlots(nextSlots);
     setTime(nextSlots[0] ?? "");
@@ -107,28 +211,46 @@ export function HomePickupDialog({ leadTimeHours }: HomePickupDialogProps) {
   }
 
   function handleContinue() {
-    if (!date || !time || !isSlotAllowed(date, time)) {
+    const actionNow = new Date();
+    if (!date || !time || !isSlotAllowed(date, time, actionNow)) {
       setError("Choose an available pickup slot.");
       return;
     }
 
-    savePickupSelection({ date, time });
+    const nextSelection = { date, time };
+    savePickupSelection(nextSelection, actionNow);
+    setSelection(nextSelection);
+    onSelectionChange?.(nextSelection);
     setOpen(false);
-    router.push("/menu");
+    if (navigateTo) router.push(navigateTo);
   }
 
   return (
     <>
-      <button
-        ref={triggerRef}
-        type="button"
-        className="btn-primary min-h-11"
-        onClick={prepareAndOpen}
-        aria-haspopup="dialog"
-        aria-expanded={open}
-      >
-        Order now <span aria-hidden="true" className="ml-2 text-lg">→</span>
-      </button>
+      <div className="space-y-2">
+        <p className="text-base font-medium text-stone-700" aria-live="polite">
+          <span className="font-bold text-stone-950">Pickup</span>{" "}
+          {selection
+            ? selectionLabel(selection, availability)
+            : "No time selected"}
+        </p>
+        {availability ? (
+          <p className="text-sm font-medium leading-6 text-stone-600">
+            {availabilityMessage(availability)}
+          </p>
+        ) : null}
+        <button
+          ref={triggerRef}
+          type="button"
+          className="btn-primary min-h-12 text-base"
+          onClick={prepareAndOpen}
+          aria-haspopup="dialog"
+          aria-expanded={open}
+        >
+          {selection ? "Edit pickup" : emptyActionLabel}{" "}
+          <span aria-hidden="true" className="ml-2 text-lg">→</span>
+        </button>
+      </div>
 
       {open ? (
         <div
@@ -149,11 +271,17 @@ export function HomePickupDialog({ leadTimeHours }: HomePickupDialogProps) {
           >
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 id="pickup-dialog-title" className="font-display text-3xl font-medium text-stone-950">
+                <h2
+                  id="pickup-dialog-title"
+                  className="font-display text-3xl font-medium text-stone-950"
+                >
                   Choose a time
                 </h2>
-                <p id="pickup-dialog-description" className="mt-2 text-sm text-stone-600">
-                  {leadTimeHours}-hour notice.
+                <p
+                  id="pickup-dialog-description"
+                  className="mt-2 text-sm text-stone-600"
+                >
+                  {leadTimeHours}-hour notice. {availability ? availabilityMessage(availability) : ""}
                 </p>
               </div>
               <button
@@ -168,10 +296,13 @@ export function HomePickupDialog({ leadTimeHours }: HomePickupDialogProps) {
             </div>
 
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              <label className="block text-sm font-semibold text-stone-800" htmlFor="home-pickup-date">
+              <label
+                className="block text-sm font-semibold text-stone-800"
+                htmlFor="pickup-context-date"
+              >
                 Date
                 <select
-                  id="home-pickup-date"
+                  id="pickup-context-date"
                   value={date}
                   onChange={(event) => handleDateChange(event.target.value)}
                   className="input mt-1"
@@ -179,16 +310,19 @@ export function HomePickupDialog({ leadTimeHours }: HomePickupDialogProps) {
                 >
                   {dates.map((option) => (
                     <option key={option.value} value={option.value}>
-                      {option.label}
+                      {pickupOptionLabel(option, availability)}
                     </option>
                   ))}
                 </select>
               </label>
 
-              <label className="block text-sm font-semibold text-stone-800" htmlFor="home-pickup-time">
+              <label
+                className="block text-sm font-semibold text-stone-800"
+                htmlFor="pickup-context-time"
+              >
                 Time
                 <select
-                  id="home-pickup-time"
+                  id="pickup-context-time"
                   value={time}
                   onChange={(event) => {
                     setTime(event.target.value);
@@ -224,11 +358,23 @@ export function HomePickupDialog({ leadTimeHours }: HomePickupDialogProps) {
               onClick={handleContinue}
               disabled={!date || !time || dates.length === 0 || slots.length === 0}
             >
-              Continue to menu <span aria-hidden="true">→</span>
+              {navigateTo ? "Continue to menu" : "Save pickup"}{" "}
+              <span aria-hidden="true">→</span>
             </button>
           </section>
         </div>
       ) : null}
     </>
+  );
+}
+
+/** Home entry point: choosing pickup continues into the menu. */
+export function HomePickupDialog({ leadTimeHours }: HomePickupDialogProps) {
+  return (
+    <PickupContext
+      leadTimeHours={leadTimeHours}
+      navigateTo="/menu"
+      emptyActionLabel="Order now"
+    />
   );
 }

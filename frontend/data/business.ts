@@ -18,8 +18,7 @@ export const business = {
   address: null as string | null,
   // TODO: confirm telephone number.
   telephone: null as string | null,
-  // TODO: confirm opening hours.
-  openingHours: null as string | null,
+  openingHours: "Monday–Saturday, 10:00–20:30",
   // TODO: confirm legal business name (for receipts / Stripe).
   legalName: null as string | null,
   // TODO: add social-media profile URLs once provided.
